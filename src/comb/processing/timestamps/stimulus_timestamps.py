@@ -8,9 +8,6 @@ TODO:
 from typing import Optional, Union, List
 
 import numpy as np
-from pynwb import NWBFile, ProcessingModule
-from pynwb.base import TimeSeries
-
 from comb.core import DataObject
 # from comb.data_files import (
 #     BehaviorStimulusFile,
