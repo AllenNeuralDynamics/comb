@@ -86,8 +86,8 @@ class OphysPlaneGrabber(object):
         # load platform json
         with open(self.file_paths['platform_json'], 'r') as f:
             platform_json = json.load(f)
-
-        sync_file_path = self.raw_folder_path / "pophys" / platform_json['sync_file']
+        ophys_folder = self._check_ophys_folder(self.raw_folder_path)
+        sync_file_path = ophys_folder / platform_json['sync_file']
         # stimulus pkl: "stimulus_pkl"
         # load sync h5
         #with open(sync_file_path, 'r') as f:
@@ -103,3 +103,15 @@ class OphysPlaneGrabber(object):
         for key, value in self.file_parts.items():
             self.file_paths[key] = self._find_data_file(value)
         return self.file_paths
+
+    def _check_ophys_folder(self, path):
+        ophys_names = ['ophys', 'pophys', 'mpophys']
+        ophys_folder = None
+        for ophys_name in ophys_names:
+            ophys_folder = path / ophys_name
+            if ophys_folder.exists():
+                break
+            else:
+                ophys_folder = None
+
+        return ophys_folder
