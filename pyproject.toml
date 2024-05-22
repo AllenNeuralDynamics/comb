@@ -37,7 +37,7 @@ where = ["src"]
 version = {attr = "comb.__version__"}
 
 [tool.black]
-line-length = 79
+line-length = 100
 target_version = ['py36']
 exclude = '''
 
@@ -71,7 +71,7 @@ exclude_lines = [
 fail_under = 100
 
 [tool.isort]
-line_length = 79
+line_length = 100
 profile = "black"
 
 [tool.interrogate]

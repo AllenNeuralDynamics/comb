@@ -1,0 +1,10 @@
+# id is the only required field, name optional
+# mount can be specified to change the mount point
+# uncomment entries as needed
+
+# - name: multiplane-ophys_677594_2023-08-05_09-53-49_processed_2024-02-08_23-27-20
+#   id: 4e41efd6-cf6e-440b-83dd-9e777f2540b0
+#   mount: abc_atlas
+
+- name: multiplane-ophys_485152_2019-12-09_13-04-09_processed_2024-02-12_02-53-53
+  id: 726968e5-eb99-4e7e-ba35-45fc4de2afca
