@@ -76,9 +76,8 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
 
     def _resolve_ophys_experiment_id(self):
-        
         if self.plane_folder_path is not None:
-            ophys_experiment_id = self.plane_folder_path.stem
+            ophys_experiment_id = self.plane_folder_path.name
         elif self.opid is not None:
             ophys_experiment_id = self.opid
 
@@ -98,7 +97,9 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         for i, plane_group in enumerate(split_json['plane_groups']):
             for plane_dict in plane_group['ophys_experiments']:
                 # find index of plane['experiment_id'] that matches self.opid
+
                 if str(plane_dict['experiment_id']) == self.opid:
+                    
                     split_dict['roi_index'] = plane_dict['roi_index']
                     split_dict['plane_group_index'] = i
                     split_dict['scanfield_z'] = plane_dict['scanfield_z'] # TODO rename 
@@ -124,7 +125,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
         split_dict = self._parse_mesoscope_metadata()
         metadata.update(split_dict)
-
         return metadata
 
     def _set_all_nan_traces_invalid(self):
@@ -135,8 +135,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         for cell_specimen_id, trace in dff.dff.items():
             if np.all(np.isnan(trace)):
                 nan_ids.append(cell_specimen_id)
-        print(nan_ids)
-
         new_csid_table = self.cell_specimen_table
         new_csid_table.loc[nan_ids, 'valid_roi'] = False
 
@@ -188,7 +186,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             segmentation_output = json.load(json_file)
         cell_specimen_table = pd.DataFrame(segmentation_output)
         cell_specimen_table = cell_specimen_table.rename(columns={'id': 'cell_roi_id'})
-        print(cell_specimen_table.columns)
         cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
         self._cell_specimen_table = cell_specimen_table
         return self._cell_specimen_table
