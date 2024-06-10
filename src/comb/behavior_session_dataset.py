@@ -13,7 +13,7 @@ from comb.processing.biometrics.rewards import Rewards
 
 from . import data_file_keys
 
-from typing import Any, Optional
+from typing import Any, Optional, Union
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
@@ -21,6 +21,8 @@ import os
 import h5py
 import numpy as np
 import xarray as xr
+from pathlib import Path
+
 from pathlib import Path
 
 
@@ -54,7 +56,7 @@ class LazyLoadable(object):
 class BehaviorSessionDataset(BehaviorSessionGrabber):
     """Includes stimulus, tasks, biometrics"""
     def __init__(self, 
-                 raw_folder_path: Optional[str] = None, # where sync file is (pkl file)
+                 raw_folder_path: Union[str, Path] = None, # where sync file is (pkl file)
                  oeid: Optional[str] = None,
                  data_path: Optional[str] = None,
                  monitor_delay: float = 0.0):
