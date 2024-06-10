@@ -21,6 +21,7 @@ import os
 import h5py
 import numpy as np
 import xarray as xr
+from pathlib import Path
 
 
 class LazyLoadable(object):
@@ -63,6 +64,9 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         self._load_behavior_stimulus_file()
         self.monitor_delay = monitor_delay # TODO: UPDATE
+
+        self.raw_folder_path = Path(raw_folder_path)
+        self.session_name = self.raw_folder_path.name
 
     def _load_behavior_stimulus_file(self):
         # load file when BehaviorDataset is instantiated
