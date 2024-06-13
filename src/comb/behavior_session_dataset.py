@@ -3,6 +3,7 @@ from comb.behavior_session_grabber import BehaviorSessionGrabber
 from comb.processing.stimulus import stimulus_processing
 from comb.processing.biometrics import running_processing
 from comb.processing.sync import sync_utilities
+from comb.processing.sync.time_sync import calculate_monitor_delay_by_rig, SyncDataset
 from comb.processing.biometrics.licks import Licks
 
 from comb.data_files.behavior_stimulus_file import BehaviorStimulusFile
@@ -62,11 +63,15 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                          data_path=data_path)
 
         self._load_behavior_stimulus_file()
-        self.monitor_delay = monitor_delay # TODO: UPDATE
+        self.rig_data = self.behavior_stimulus_file.data['comp_id'].split('-')[0]
+
+        self.rig = self.behavior_stimulus_file.data['comp_id'].split('-')[0] # maybe get metadata elsewhere MJD 6/2023
+        self.monitor_delay = calculate_monitor_delay_by_rig(sync_file_path=self.file_paths['sync_file'], equipment_name=self.rig)
 
     def _load_behavior_stimulus_file(self):
         # load file when BehaviorDataset is instantiated
         self.behavior_stimulus_file = BehaviorStimulusFile.from_file(self.file_paths['stimulus_pkl'])
+
 
     def get_stimulus_timestamps(self): 
         self._stimulus_timestamps = sync_utilities.get_synchronized_frame_times(
