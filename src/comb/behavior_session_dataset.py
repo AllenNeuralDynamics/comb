@@ -63,6 +63,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         self._load_behavior_stimulus_file()
         self.monitor_delay = monitor_delay # TODO: UPDATE
+        self.get_stimulus_timestamps()
 
     def _load_behavior_stimulus_file(self):
         # load file when BehaviorDataset is instantiated
@@ -88,11 +89,15 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #     return self._stimulus_presentations
 
     def get_stimulus_presentations(self):
-        """"yo"""
-        ts = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file, 
-                                                   monitor_delay=self.monitor_delay)
+        """"TODO"""
+        # alternative timestamps, from pkl file. produces 
+        # stimulus_timestamps = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file, 
+        #                                            monitor_delay=self.monitor_delay)
+
+        stimulus_timestamps = StimulusTimestamps(timestamps=self.stimulus_timestamps, monitor_delay=0.0)
+        
         st = Presentations.from_stimulus_file(stimulus_file=self.behavior_stimulus_file,
-                                              stimulus_timestamps=ts,
+                                              stimulus_timestamps=stimulus_timestamps,
                                               behavior_session_id='DUMMY ID') # TODO: GET BEHAVIOR SESSION ID
 
         self._stimulus_presentations = st.value # TODO: probably smoother way to return than call value
