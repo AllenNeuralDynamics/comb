@@ -41,7 +41,7 @@ class OphysPlaneGrabber(object):
                            "registered_metrics_json": "_registered_metrics.json",
                            "output_json": "_output.json",
                            "average_projection_png": "_average_projection.png",
-                           "max_projection_png": "_max_projection.png",
+                           "max_projection_png": "_maximum_projection.png",
                            "motion_transform_csv": "_motion_transform.csv",
                            "segmentation_output_json": "segmentation_output.json",
                            "roi_traces_h5": "roi_traces.h5",
