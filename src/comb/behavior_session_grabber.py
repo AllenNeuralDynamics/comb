@@ -60,7 +60,6 @@ class BehaviorSessionGrabber(object):
             platform_json = json.load(f)
 
         ophys_path = self._check_ophys_folder(self.raw_folder_path)
-
         sync_file_path =  ophys_path / platform_json['sync_file']
         # stimulus pkl: "stimulus_pkl"
         # load sync h5
@@ -73,8 +72,8 @@ class BehaviorSessionGrabber(object):
         with open(self.file_paths['platform_json'], 'r') as f:
             platform_json = json.load(f)
 
-        ophys_path = self._check_ophys_folder(self.raw_folder_path)
-        stimulus_pkl_path = ophys_path / platform_json['stimulus_pkl']
+        behavior_path = self._check_behavior_folder(self.raw_folder_path)
+        stimulus_pkl_path = behavior_path / platform_json['stimulus_pkl']
 
         # stimulus pkl: "stimulus_pkl"
         # load sync h5
@@ -103,3 +102,10 @@ class BehaviorSessionGrabber(object):
                 ophys_folder = None
 
         return ophys_folder
+
+    def _check_behavior_folder(self, path):
+        behavior_name = 'behavior'
+        behavior_folder = path / behavior_name
+        if not behavior_folder.exists():
+            behavior_folder = None
+        return behavior_folder

@@ -29,6 +29,10 @@ class OphysPlaneGrabber(object):
         elif plane_folder_path:
             self.plane_folder_path = Path(plane_folder_path)
             self.opid = self.plane_folder_path.stem
+        if raw_folder_path:
+            self.raw_folder_path = Path(raw_folder_path)
+        else:
+            self.raw_folder_path = None
         self.verbose = verbose
         # processed filepaths dict
         self.file_parts = {"platform_json": "_platform.json",
@@ -56,7 +60,6 @@ class OphysPlaneGrabber(object):
         # if raw, get sync file
         if raw_folder_path:
             print("Currently sync file stored in raw data assest, will load since raw_folder_path is provided (02/01/2024)")
-            self.raw_folder_path = Path(raw_folder_path)
             self.sync_file = self._get_sync_file()
 
         # raw
@@ -69,9 +72,17 @@ class OphysPlaneGrabber(object):
         return found[0]
 
     def _find_data_file(self, file_part):
-        # find in plane_folder_path
         try:
-            file = list(self.plane_folder_path.glob(f'**/*{file_part}*'))[0]
+            # first find in plane_folder_path, then in raw_folder
+            files_plane_folder = list(self.plane_folder_path.glob(f'**/*{file_part}*'))
+            if len(files_plane_folder) > 0:
+                file = files_plane_folder[0]
+            else:
+                if self.raw_folder_path is not None:
+                    files_raw_folder = list(self.raw_folder_path.glob(f'**/*{file_part}*'))
+                    file = files_raw_folder[0]
+                else:
+                    file = None
             if self.verbose:
                 # just keep filename and parent folder name
                 sub_path = file.parent.name + '/' + file.name
