@@ -7,7 +7,17 @@
 ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen?logo=codecov)
 ![Python](https://img.shields.io/badge/python->=3.7-blue?logo=python)
 
+## COMB:
 
+![COMB logo](/img/comb.png)
+
+COMB: Compile Ophys Mfish Behavior
+
++ Replacement of the AllenSDK for visual behavior like experiments (e.g. changed detection task)
++ A set of classes to load and pre process data on ophys/behavior (later mfish) data on Code Ocean
++ Lazy loading of data products (main class loads quick, expensive processes are executed only when needed)
++ Less abstraction/dependencies/nesting than allenSDK
++ "experiment" is changed to "plane", so ophys_experiment_id is now ophys_plane_id
 
 ## Usage
  - To use this template, click the green `Use this template` button and `Create new repository`.
