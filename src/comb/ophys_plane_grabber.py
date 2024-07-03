@@ -11,7 +11,7 @@ import json
 class OphysPlaneGrabber(object):
     def __init__(self,
                  plane_folder_path: Union[str, Path] = None,
-                 raw_folder_path: Optional[str] = None,
+                 raw_folder_path: Union[str, Path] = None,
                  opid: Optional[str] = None,
                  data_path: Optional[str] = None,
                  verbose=False):
@@ -83,17 +83,25 @@ class OphysPlaneGrabber(object):
         return file
     
     def _get_sync_file(self):
-        # load platform json
-        with open(self.file_paths['platform_json'], 'r') as f:
-            platform_json = json.load(f)
-        ophys_folder = self._check_ophys_folder(self.raw_folder_path)
-        sync_file_path = ophys_folder / platform_json['sync_file']
-        # stimulus pkl: "stimulus_pkl"
-        # load sync h5
-        #with open(sync_file_path, 'r') as f:
-        #    sync_file = json.load(f)
-        # add to file paths dict
-        self.file_paths['sync_file'] = sync_file_path
+    
+            ophys_folder = self._check_ophys_folder(self.raw_folder_path)
+        
+            # get from raw asset
+            try: 
+                file_parts = {"sync_h5": "_sync.h5"}
+                sync_file_path = self._find_data_file(file_parts["sync_h5"], asset_type="raw")
+            except IndexError:
+                pass
+            
+            # # method 2: load platform json, but the sync file name changed
+            # file_parts = {"platform_json": "_platform.json"}
+            # platform_path = self._find_data_file(file_parts["platform_json"], asset_type="raw")
+            # with open(platform_path, 'r') as f:
+            #     platform_json = json.load(f)
+            # sync_file_path = ophys_folder / platform_json['sync_file']
+
+            assert sync_file_path.exists(), f"Sync file not found: {sync_file_path}"
+            self.file_paths['sync_file'] = sync_file_path
 
     ####################################################################
     # Data files
@@ -105,6 +113,7 @@ class OphysPlaneGrabber(object):
         return self.file_paths
 
     def _check_ophys_folder(self, path):
+        """ophys folders can have multiple names, check for all of them"""
         ophys_names = ['ophys', 'pophys', 'mpophys']
         ophys_folder = None
         for ophys_name in ophys_names:
