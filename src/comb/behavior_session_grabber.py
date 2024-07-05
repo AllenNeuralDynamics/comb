@@ -75,6 +75,10 @@ class BehaviorSessionGrabber(object):
         behavior_path = self._check_behavior_folder(self.raw_folder_path)
         stimulus_pkl_path = behavior_path / platform_json['stimulus_pkl']
 
+        if not stimulus_pkl_path.exists():
+            ophys_path = self._check_ophys_folder(self.raw_folder_path)
+            stimulus_pkl_path =  ophys_path / platform_json['stimulus_pkl']
+
         # stimulus pkl: "stimulus_pkl"
         # load sync h5
         #with open(sync_file_path, 'r') as f:
@@ -104,8 +108,12 @@ class BehaviorSessionGrabber(object):
         return ophys_folder
 
     def _check_behavior_folder(self, path):
-        behavior_name = 'behavior'
-        behavior_folder = path / behavior_name
-        if not behavior_folder.exists():
-            behavior_folder = None
+        behavior_names = ['behavior', 'behavior_videos']
+        behavior_folder = None
+        for behavior_name in behavior_names:
+            behavior_folder = path / behavior_name
+            if behavior_folder.exists():
+                break
+            else:
+                behavior_folder = None
         return behavior_folder
