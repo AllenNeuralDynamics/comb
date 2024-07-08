@@ -63,6 +63,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
         # currently pipeline give all nan traces; lets remove
         try:
+            _ = self.get_cell_specimen_table()
             self._set_all_nan_traces_invalid()
         except TypeError: # No dff_file
             pass
@@ -128,25 +129,29 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return metadata
 
     def _set_all_nan_traces_invalid(self):
+        ''' Only possible when it has _cell_specimen_table as an attribute.
+        Ignore otherwise'''
+        if hasattr(self, '_cell_specimen_table') and (self._cell_specimen_table is not None):
+            dff = self.dff_traces
+            nan_ids = []
+            # iterate dff.dff, check if array is all nan
+            for cell_specimen_id, trace in dff.dff.items(): # TODO: remove iteration
+                if np.all(np.isnan(trace)):
+                    nan_ids.append(cell_specimen_id)
+            if len(nan_ids) > 0:
+                new_csid_table = self._cell_specimen_table
+                new_csid_table.loc[nan_ids, 'valid_roi'] = False
 
-        dff = self.dff_traces
-        nan_ids = []
-        # iterate dff.dff, check if array is all nan
-        for cell_specimen_id, trace in dff.dff.items():
-            if np.all(np.isnan(trace)):
-                nan_ids.append(cell_specimen_id)
-        new_csid_table = self.cell_specimen_table
-        new_csid_table.loc[nan_ids, 'valid_roi'] = False
+                # for each nan_ids, set append 'nan trace' to exclusion_labels cell
+                for cell_specimen_id in nan_ids:
+                    if new_csid_table.loc[cell_specimen_id, 'exclusion_labels'] is None:
+                        new_csid_table.loc[cell_specimen_id, 'exclusion_labels'] = ['nan trace']
 
-        # for each nan_ids, set append 'nan trace' to exclusion_labels cell
-        for cell_specimen_id in nan_ids:
-            if new_csid_table.loc[cell_specimen_id, 'exclusion_labels'] is None:
-                new_csid_table.loc[cell_specimen_id, 'exclusion_labels'] = ['nan trace']
+                self._cell_specimen_table = new_csid_table
 
-        self._cell_specimen_table = new_csid_table
-
-        if self.verbose:
-            print(f"Set {len(nan_ids)} cell_specimen_ids to invalid_roi, found all nan traces")
+                if self.verbose:
+                    print(f"Set {len(nan_ids)} cell_specimen_ids to invalid_roi, found all nan traces")
+        
 
     def _add_csid_to_table(self, table):
         """Cell specimen ids are not avaiable in CodeOcean, as they were in LIMS (01/18/2024)
@@ -181,13 +186,17 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return self._motion_transform
 
     # TODO: should we rename the attribute to segmentation? (MJD)
-    def get_cell_specimen_table(self): 
-        with open(self.file_paths['segmentation_output_json']) as json_file:
-            segmentation_output = json.load(json_file)
-        cell_specimen_table = pd.DataFrame(segmentation_output)
-        cell_specimen_table = cell_specimen_table.rename(columns={'id': 'cell_roi_id'})
-        cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
-        self._cell_specimen_table = cell_specimen_table
+    def get_cell_specimen_table(self):
+        if hasattr(self, '_cell_specimen_table') and (self._cell_specimen_table is not None):
+            return self._cell_specimen_table
+        else:
+            with open(self.file_paths['segmentation_output_json']) as json_file:
+                segmentation_output = json.load(json_file)
+            cell_specimen_table = pd.DataFrame(segmentation_output)
+            cell_specimen_table = cell_specimen_table.rename(columns={'id': 'cell_roi_id'})
+            cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
+            self._set_all_nan_traces_invalid()
+            self._cell_specimen_table = cell_specimen_table
         return self._cell_specimen_table
 
     def get_raw_fluorescence_traces(self):
