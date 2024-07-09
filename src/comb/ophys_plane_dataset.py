@@ -41,7 +41,7 @@ class LazyLoadable(object):
 class OphysPlaneDataset(OphysPlaneGrabber):
     def __init__(self,
                 plane_folder_path: Union[str, Path] = None,
-                raw_folder_path: Optional[str] = None, # where sync file is (pkl file)
+                raw_folder_path: Union[str, Path] = None,
                 opid: Optional[str] = None,
                 data_path: Optional[str] = None,
                 verbose=False):

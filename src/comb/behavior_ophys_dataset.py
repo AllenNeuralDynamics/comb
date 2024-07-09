@@ -61,7 +61,9 @@ class BehaviorOphysDataset:
 class BehaviorMultiplaneOphysDataset:
     """A class to combine multiple BehaviorOphysDataset objects into a single object.
         """
-    def __init__(self, session_folder_path: Union[str,Path], raw_folder_path: Union[str, Path]):
+    def __init__(self, 
+                 session_folder_path: Union[str,Path], 
+                 raw_folder_path: Union[str, Path]):
         self.session_folder_path = Path(session_folder_path)
         self.raw_folder_path = Path(raw_folder_path)
         self.ophys_datasets = {}

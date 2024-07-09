@@ -17,6 +17,7 @@ class OphysPlaneGrabber(object):
                  verbose=False):
 
         assert plane_folder_path or opid is not None, "Must provide either plane_folder_path or opid"
+        assert raw_folder_path is not None, "Must provide raw_folder_path"
 
         if data_path:
             self.data_path = Path(data_path)
@@ -30,6 +31,7 @@ class OphysPlaneGrabber(object):
             self.plane_folder_path = Path(plane_folder_path)
             self.opid = self.plane_folder_path.stem
         self.verbose = verbose
+    
         # processed filepaths dict
         self.file_parts = {"platform_json": "_platform.json",
                            "processing_json": "processing.json",
@@ -52,15 +54,8 @@ class OphysPlaneGrabber(object):
                            "mesoscope_splitting_json": "MESOSCOPE_FILE_SPLITTING"}
         self.file_paths = {}
         self._get_file_path_dict()
-
-        # if raw, get sync file
-        if raw_folder_path:
-            print("Currently sync file stored in raw data assest, will load since raw_folder_path is provided (02/01/2024)")
-            self.raw_folder_path = Path(raw_folder_path)
-            self.sync_file = self._get_sync_file()
-
-        # raw
-        # for local, to create a full dataset, must speficity the raw_folder_path
+        self.raw_folder_path = Path(raw_folder_path)
+        self.sync_file = self._get_sync_file()
 
     def _find_plane_folder_from_opid(self, opid):
         # find in results
@@ -75,7 +70,6 @@ class OphysPlaneGrabber(object):
             if self.verbose:
                 # just keep filename and parent folder name
                 sub_path = file.parent.name + '/' + file.name
-                print(f"{file_part}: {sub_path}")
         except IndexError:
             if self.verbose:
                 print(f"{file_part}: not found")
@@ -83,25 +77,25 @@ class OphysPlaneGrabber(object):
         return file
     
     def _get_sync_file(self):
-    
+        """Find the Sync file"""
+        try: 
+            # method 1: find sync_file by name
+            file_parts = {"sync_h5": "_sync.h5"}
+            sync_file_path = self._find_data_file(file_parts["sync_h5"], asset_type="raw")
+        except IndexError as e:
+            print("file with '*_sync.h5' no found, trying platform json")
+        else:
+            # method 2: load platform json
+            # Note: sometimes fails if platform json
+            file_parts = {"platform_json": "_platform.json"}
+            platform_path = self._find_data_file(file_parts["platform_json"], asset_type="raw")
+            with open(platform_path, 'r') as f:
+                platform_json = json.load(f)
             ophys_folder = self._check_ophys_folder(self.raw_folder_path)
-        
-            # get from raw asset
-            try: 
-                file_parts = {"sync_h5": "_sync.h5"}
-                sync_file_path = self._find_data_file(file_parts["sync_h5"], asset_type="raw")
-            except IndexError:
-                pass
-            
-            # # method 2: load platform json, but the sync file name changed
-            # file_parts = {"platform_json": "_platform.json"}
-            # platform_path = self._find_data_file(file_parts["platform_json"], asset_type="raw")
-            # with open(platform_path, 'r') as f:
-            #     platform_json = json.load(f)
-            # sync_file_path = ophys_folder / platform_json['sync_file']
+            sync_file_path = ophys_folder / platform_json['sync_file']
 
-            assert sync_file_path.exists(), f"Sync file not found: {sync_file_path}"
-            self.file_paths['sync_file'] = sync_file_path
+        assert sync_file_path.exists(), f"Sync file not found: {sync_file_path}"
+        self.file_paths['sync_file'] = sync_file_path
 
     ####################################################################
     # Data files
