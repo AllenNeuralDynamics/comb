@@ -31,6 +31,7 @@ from comb.processing.stimulus.stimulus_processing import (
     get_stimulus_presentations,
     is_change_event,
     produce_stimulus_block_names,
+    get_behavior_key,
 )
 
 from comb.utils.dataframe_utils import (
@@ -141,6 +142,8 @@ class Presentations(DataObject):
         #project_code: Optional[ProjectCode] = None,
     ) -> "Presentations":
         """Get stimulus presentation data.
+        Currently focusing on change detection tasks and STAGE_1 passive viewing.
+        # TODO: consider the scope of stimulus presentations and refactor.
 
         Parameters
         ----------
@@ -186,7 +189,7 @@ class Presentations(DataObject):
         #   1. Nulls in `image_name` should be "gratings_<orientation>"
         #   2. Gratings are only present (or need to be fixed) when all
         #      values for `image_name` are null.
-        if pd.isnull(raw_stim_pres_df["image_name"]).all():
+        if ('image_name' not in  raw_stim_pres_df.keys()) or pd.isnull(raw_stim_pres_df["image_name"]).all():
             if ~pd.isnull(raw_stim_pres_df["orientation"]).all():
                 raw_stim_pres_df["image_name"] = raw_stim_pres_df[
                     "orientation"
@@ -234,6 +237,12 @@ class Presentations(DataObject):
                 f" {len(stim_pres_df)}."
             )
 
+        # no 'omitted' for STAGE_1 drifting graings
+        # NOTE: Should we force all stimulus presentations to have omitted? (07/09/2024 JK)
+        if "omitted" not in stim_pres_df.keys():
+            # TODO: is there any other column names to be filled? (07/09/2024 JK)
+            stim_pres_df["omitted"] = False
+
         stim_pres_df["is_change"] = is_change_event(
             stimulus_presentations=stim_pres_df
         )
@@ -253,8 +262,12 @@ class Presentations(DataObject):
                 range(stim_pres_df.shape[0]), name=stim_pres_df.index.name
             )
 
-        stim_pres_df["stimulus_block"] = 0
-        stim_pres_df["stimulus_name"] = stimulus_file.stimulus_name
+        if 'stimulus_name' not in stim_pres_df:
+            stim_pres_df["stimulus_block"] = 0
+            stim_pres_df["stimulus_name"] = stimulus_file.stimulus_name
+        else: # in case of STAGE_1 
+            stimulus_names = stim_pres_df.stimulus_name.unique()
+            stim_pres_df['stimulus_block'] = stim_pres_df.apply(lambda x: np.where(stimulus_names == x.stimulus_name)[0][0], axis=1)
 
         stim_pres_df = fix_omitted_end_frame(stim_pres_df)
 
@@ -263,8 +276,9 @@ class Presentations(DataObject):
         #     behavior_session_id=behavior_session_id,
         # )
 
+        behavior_key = get_behavior_key(stimulus_file.data)
         has_fingerprint_stimulus = (
-            "fingerprint" in stimulus_file.data["items"]["behavior"]["items"]
+            "fingerprint" in stimulus_file.data["items"][behavior_key]["items"]
         )
         if has_fingerprint_stimulus:
             stim_pres_df = cls._add_fingerprint_stimulus(

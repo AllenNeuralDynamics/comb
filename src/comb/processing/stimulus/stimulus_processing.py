@@ -130,6 +130,7 @@ def get_gratings_metadata(stimuli: Dict, start_idx: int = 0) -> pd.DataFrame:
     This function returns the metadata for each unique grating that was
     presented during the experiment. If no gratings were displayed during
     this experiment it returns an empty dataframe with the expected columns.
+    NOTE: STAGE_1 stimuli dictionary is empty, so an empty df will be returned.
     Parameters
     ----------
     stimuli:
@@ -316,7 +317,8 @@ def get_stimulus_metadata(pkl) -> pd.DataFrame:
         orientation, and image index.
 
     """
-    stimuli = pkl['items']['behavior']['stimuli']
+    behavior_key = get_behavior_key(pkl)
+    stimuli = pkl['items'][behavior_key]['stimuli']
     if 'images' in stimuli:
         images = get_images_dict(pkl)
         stimulus_index_df = pd.DataFrame(images['image_attributes'])
@@ -667,16 +669,16 @@ def get_visual_stimuli_df(
             stim_table['stimulus_name'] = [stimulus_name] * len(stim_table)
             unique_conditions = np.unique(sweep_order)
             num_sweeps = len(sweep_order)
-            for i_attribure, stim_attribute in enumerate(stim_attributes):
+            for i_attribute, stim_attribute in enumerate(stim_attributes):
                 attribute_by_sweep = np.zeros((num_sweeps,))
                 attribute_by_sweep[:] = np.NaN
                 for i_condition, condition in enumerate(unique_conditions):
                     sweeps_with_condition = np.argwhere(sweep_order == condition)[:, 0]
                     if condition > -1:  # blank sweep is -1
                         if stim_attribute.find('Size')!=-1:
-                            attribute_by_sweep[sweeps_with_condition] = sweep_table[condition][i_attribure][0]
+                            attribute_by_sweep[sweeps_with_condition] = sweep_table[condition][i_attribute][0]
                         else:
-                            attribute_by_sweep[sweeps_with_condition] = sweep_table[condition][i_attribure]
+                            attribute_by_sweep[sweeps_with_condition] = sweep_table[condition][i_attribute]
 
                 stim_table[stim_attribute] = attribute_by_sweep[:len(stim_table)]
 
@@ -685,7 +687,7 @@ def get_visual_stimuli_df(
             else:
                 df = pd.concat([df, stim_table], ignore_index = True,sort = False)
 
-        df = df.rename(columns={'Ori': 'direction', 'Contrast': 'contrast'})
+        df = df.rename(columns={'Ori': 'orientation', 'Contrast': 'contrast'})
         df = df.sort_values('frame').reset_index()
     else:
         stimuli = data['items'][behavior_key]['stimuli']
@@ -824,6 +826,8 @@ def get_flashes_since_change(
         name="flashes_since_change",
         dtype="int",
     )
+
+
     for idx, (pd_index, row) in enumerate(stimulus_presentations.iterrows()):
         omitted = row["omitted"]
         if pd.isna(row["omitted"]):
