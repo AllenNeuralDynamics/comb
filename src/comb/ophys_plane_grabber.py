@@ -7,6 +7,8 @@ import glob
 from typing import Any, Optional,Union
 import json
 
+from . import file_handling
+
 
 class OphysPlaneGrabber(object):
     def __init__(self,
@@ -33,88 +35,35 @@ class OphysPlaneGrabber(object):
         self.verbose = verbose
     
         # processed filepaths dict
-        self.file_parts = {"platform_json": "_platform.json",
-                           "processing_json": "processing.json",
+        self.processed_file_parts = {"processing_json": "processing.json",
                            "params_json": "_params.json",
                            "registered_metrics_json": "_registered_metrics.json",
                            "output_json": "_output.json",
                            "average_projection_png": "_average_projection.png",
-                           "max_projection_png": "_max_projection.png",
+                           "max_projection_png": "_maximum_projection.png",
                            "motion_transform_csv": "_motion_transform.csv",
                            "segmentation_output_json": "segmentation_output.json",
                            "roi_traces_h5": "roi_traces.h5",
                            "neuropil_correction_h5": "neuropil_correction.h5",
                            "neuropil_masks_json": "neuropil_masks.json",
                            "neuropil_trace_output_json": "neuropil_trace_output.json",
-                           "demixing_h5": "demixing_output.h5",
-                           "demixing_json": "demixing_output.json",
+                           #"demixing_h5": "demixing_output.h5",
+                           #"demixing_json": "demixing_output.json",
                            "dff_h5": "dff.h5",
                            "extract_traces_json": "extract_traces.json",
-                           "events_oasis_h5": "events_oasis.h5",
-                           "mesoscope_splitting_json": "MESOSCOPE_FILE_SPLITTING"}
-        self.file_paths = {}
-        self._get_file_path_dict()
+                           "events_oasis_h5": "events_oasis.h5"}
+
+        self.raw_file_parts = {"mesoscope_splitting_json": "MESOSCOPE_FILE_SPLITTING",
+                               "platform_json": "_platform.json"}
+
         self.raw_folder_path = Path(raw_folder_path)
-        self.sync_file = self._get_sync_file()
+
+        self.sync_file = file_handling.get_sync_file_path(self.raw_folder_path)
+        self.file_paths = file_handling.get_file_paths_dict(self.processed_file_parts, self.plane_folder_path)
+        self.file_paths.update(file_handling.get_file_paths_dict(self.raw_file_parts, self.raw_folder_path))
 
     def _find_plane_folder_from_opid(self, opid):
         # find in results
         found = list(self.data_path.glob(f'**/{opid}'))
         assert found != 1, f"Found {len(found)} folders with opid {opid}"
         return found[0]
-
-    def _find_data_file(self, file_part):
-        # find in plane_folder_path
-        try:
-            file = list(self.plane_folder_path.glob(f'**/*{file_part}*'))[0]
-            if self.verbose:
-                # just keep filename and parent folder name
-                sub_path = file.parent.name + '/' + file.name
-        except IndexError:
-            if self.verbose:
-                print(f"{file_part}: not found")
-            file = None
-        return file
-    
-    def _get_sync_file(self):
-        """Find the Sync file"""
-        try: 
-            # method 1: find sync_file by name
-            file_parts = {"sync_h5": "_sync.h5"}
-            sync_file_path = self._find_data_file(file_parts["sync_h5"], asset_type="raw")
-        except IndexError as e:
-            print("file with '*_sync.h5' no found, trying platform json")
-        else:
-            # method 2: load platform json
-            # Note: sometimes fails if platform json
-            file_parts = {"platform_json": "_platform.json"}
-            platform_path = self._find_data_file(file_parts["platform_json"], asset_type="raw")
-            with open(platform_path, 'r') as f:
-                platform_json = json.load(f)
-            ophys_folder = self._check_ophys_folder(self.raw_folder_path)
-            sync_file_path = ophys_folder / platform_json['sync_file']
-
-        assert sync_file_path.exists(), f"Sync file not found: {sync_file_path}"
-        self.file_paths['sync_file'] = sync_file_path
-
-    ####################################################################
-    # Data files
-    ###################################################################
-
-    def _get_file_path_dict(self):
-        for key, value in self.file_parts.items():
-            self.file_paths[key] = self._find_data_file(value)
-        return self.file_paths
-
-    def _check_ophys_folder(self, path):
-        """ophys folders can have multiple names, check for all of them"""
-        ophys_names = ['ophys', 'pophys', 'mpophys']
-        ophys_folder = None
-        for ophys_name in ophys_names:
-            ophys_folder = path / ophys_name
-            if ophys_folder.exists():
-                break
-            else:
-                ophys_folder = None
-
-        return ophys_folder
