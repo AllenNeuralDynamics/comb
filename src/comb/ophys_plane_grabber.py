@@ -61,6 +61,7 @@ class OphysPlaneGrabber(object):
         self.sync_file = file_handling.get_sync_file_path(self.raw_folder_path)
         self.file_paths = file_handling.get_file_paths_dict(self.processed_file_parts, self.plane_folder_path)
         self.file_paths.update(file_handling.get_file_paths_dict(self.raw_file_parts, self.raw_folder_path))
+        self.file_paths.update({"sync_file": self.sync_file})
 
     def _find_plane_folder_from_opid(self, opid):
         # find in results

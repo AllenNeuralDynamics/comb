@@ -37,6 +37,7 @@ class BehaviorSessionGrabber(object):
         self.raw_folder_path = Path(raw_folder_path)
         self.sync_file = file_handling.get_sync_file_path(self.raw_folder_path)
         self.stimulus_pkl = self._get_pkl_file()
+        self.file_paths["sync_file"] = self.sync_file
 
     def _find_plane_folder_from_oeid(self, oeid):
         # find in results
@@ -48,7 +49,13 @@ class BehaviorSessionGrabber(object):
         with open(self.file_paths['platform_json'], 'r') as f:
             platform_json = json.load(f)
 
-        ophys_path = file_handling.check_ophys_folder(self.raw_folder_path)
-        stimulus_pkl_path = ophys_path / platform_json['stimulus_pkl']
+        behavior_path = file_handling.check_behavior_folder(self.raw_folder_path)
+        stimulus_pkl_path = behavior_path / platform_json['stimulus_pkl']
+        if not stimulus_pkl_path.exists():
+            stimulus_pkl_path = None
+
+        if stimulus_pkl_path is None:
+            ophys_path = file_handling.check_ophys_folder(self.raw_folder_path)
+            stimulus_pkl_path = ophys_path / platform_json['stimulus_pkl']
 
         self.file_paths["stimulus_pkl"] = stimulus_pkl_path

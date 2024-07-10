@@ -53,6 +53,18 @@ def check_ophys_folder(path):
     return ophys_folder
 
 
+def check_behavior_folder(path):
+    behavior_names = ['behavior', 'behavior_videos']
+    behavior_folder = None
+    for behavior_name in behavior_names:
+        behavior_folder = path / behavior_name
+        if behavior_folder.exists():
+            break
+        else:
+            behavior_folder = None
+    return behavior_folder
+
+
 def get_sync_file_path(input_path):
     """Find the Sync file"""
     file_parts = {}
