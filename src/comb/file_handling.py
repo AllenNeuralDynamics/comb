@@ -6,7 +6,7 @@ import json
 import logging
 logger = logging.getLogger(__name__)
 
-def find_data_file(input_path, file_part):
+def find_data_file(input_path, file_part, verbose=False):
     """Find a file in a directory given a partial file name.
 
     Example
@@ -27,7 +27,8 @@ def find_data_file(input_path, file_part):
     try:
         file = list(input_path.glob(f'**/*{file_part}*'))[0]
     except IndexError:
-        logger.warning(f"File with '{file_part}' not found in {input_path}")
+        if verbose:
+            logger.warning(f"File with '{file_part}' not found in {input_path}")
         file = None
     return file
 
@@ -65,16 +66,17 @@ def check_behavior_folder(path):
     return behavior_folder
 
 
-def get_sync_file_path(input_path):
+def get_sync_file_path(input_path, verbose=False):
     """Find the Sync file"""
     file_parts = {}
     input_path = Path(input_path)
     try: 
         # method 1: find sync_file by name
         file_parts = {"sync_h5": "_sync.h5"}
-        sync_file_path = find_data_file(input_path, file_parts["sync_h5"])
+        sync_file_path = find_data_file(input_path, file_parts["sync_h5"], verbose=False)
     except IndexError as e:
-        logger.info("file with '*_sync.h5' no found, trying platform json")
+        if verbose:
+            logger.info("file with '*_sync.h5' not found, trying platform json")
 
     if sync_file_path is None:
         # method 2: load platform json

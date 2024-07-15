@@ -36,6 +36,11 @@ class BehaviorOphysDataset:
                 raw_folder_path: Union[str, Path],
                 verbose: Optional[bool] = False):
 
+        if not Path(plane_folder_path).exists():
+            raise FileNotFoundError(f"Path does not exist: {plane_folder_path}")
+        if not Path(raw_folder_path).exists():
+            raise FileNotFoundError(f"Path does not exist: {raw_folder_path}")
+
         self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,raw_folder_path=raw_folder_path,verbose=verbose)
         self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path)
 
@@ -64,8 +69,15 @@ class BehaviorMultiplaneOphysDataset:
     def __init__(self, 
                  session_folder_path: Union[str,Path], 
                  raw_folder_path: Union[str, Path]):
+        
         self.session_folder_path = Path(session_folder_path)
         self.raw_folder_path = Path(raw_folder_path)
+        
+        if not Path(session_folder_path).exists():
+            raise FileNotFoundError(f"Path does not exist: {session_folder_path}")
+        if not Path(raw_folder_path).exists():
+            raise FileNotFoundError(f"Path does not exist: {raw_folder_path}")
+
         self.ophys_datasets = {}
         self._get_ophys_datasets()
         self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path)
