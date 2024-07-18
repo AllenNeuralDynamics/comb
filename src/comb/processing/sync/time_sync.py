@@ -184,8 +184,9 @@ def calculate_monitor_delay_visual_coding(photodiode_rise, stim_vsync_fall):
 
     # assume delay
     else:
-        raise
-        # delay = ASSUMED_DELAY
+        # raise
+        delay = ASSUMED_DELAY
+        delay_std = 0
     # except Exception as e:
     #     logger.info(e)
     #     delay = ASSUMED_DELAY
