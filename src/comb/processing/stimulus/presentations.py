@@ -20,6 +20,7 @@ from comb.processing.trials.trials import Trials
 from comb.core import DataObject
 from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
 from comb.data_files.behavior_stimulus_file import BehaviorStimulusFile
+from comb.processing.stimulus.fingerprint_stimulus import FingerprintStimulus
 
 from comb.processing.stimulus.stimulus_processing import (
     add_active_flag,
@@ -283,6 +284,7 @@ class Presentations(DataObject):
             "fingerprint" in stimulus_file.data["items"][behavior_key]["items"]
         )
         if has_fingerprint_stimulus:
+            print("FINGERFINGER")
             stim_pres_df = cls._add_fingerprint_stimulus(
                 stimulus_presentations=stim_pres_df,
                 stimulus_file=stimulus_file,
@@ -632,7 +634,9 @@ class Presentations(DataObject):
                 stimulus_timestamps=stimulus_timestamps,
             )
         #except MalformedStimulusFileError:
-        except:
+        except Exception as e:
+            print("MalformedStimulusFileError: Fingerprint stimulus not added")
+            print(e)
             return stimulus_presentations
 
         stimulus_presentations = pd.concat(
