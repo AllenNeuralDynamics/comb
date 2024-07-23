@@ -34,7 +34,8 @@ class BehaviorOphysDataset:
     def __init__(self,
                 plane_folder_path: Union[str, Path],
                 raw_folder_path: Union[str, Path],
-                verbose: Optional[bool] = False):
+                verbose: Optional[bool] = False,
+                project_code: Optional[str] = None):
 
         if not Path(plane_folder_path).exists():
             raise FileNotFoundError(f"Path does not exist: {plane_folder_path}")
@@ -42,7 +43,7 @@ class BehaviorOphysDataset:
             raise FileNotFoundError(f"Path does not exist: {raw_folder_path}")
 
         self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,raw_folder_path=raw_folder_path,verbose=verbose)
-        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path)
+        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path, project_code=project_code)
 
     def __getattr__(self, name):
         if hasattr(self.ophys_plane_dataset, name):
