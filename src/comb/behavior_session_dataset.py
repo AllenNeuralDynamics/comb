@@ -95,7 +95,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
     #     return self._stimulus_presentations
 
-    def get_stimulus_presentations(self, monitor_delay=0.0):
+    def get_stimulus_presentations(self, monitor_delay=0.03613):
         """"TODO"""
         # alternative timestamps, from pkl file. produces 
         # stimulus_timestamps = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file, 
@@ -106,8 +106,8 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         # TODO: Add for other session types, and make it generalized (At least within certain scope of stimuli sets)
         # session_type = self.behavior_dataset.behavior_stimulus_file.session_type
         session_type = self.behavior_stimulus_file.session_type
-        if session_type == 'STAGE_1':
-            monitor_delay = self.get_monitor_delay_stage_1()
+        # if session_type == 'STAGE_1':
+        #     monitor_delay = self.get_monitor_delay_stage_1()
 
         stimulus_timestamps = StimulusTimestamps(timestamps=self.stimulus_timestamps, monitor_delay=monitor_delay)
         
