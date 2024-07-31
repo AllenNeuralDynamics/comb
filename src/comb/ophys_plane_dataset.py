@@ -182,7 +182,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return self._max_projection
 
     def get_motion_transform_csv(self):
-        self._motion_transform = pd.read_csv()
+        self._motion_transform = pd.read_csv(self.file_paths['motion_transform_csv'])
         return self._motion_transform
 
     # TODO: should we rename the attribute to segmentation? (MJD)
