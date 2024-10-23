@@ -105,9 +105,9 @@ def get_images_dict(pkl) -> Dict:
             meta = dict(
                 image_category=cat.decode("utf-8"),
                 image_name=img_name.decode("utf-8"),
-                orientation=np.NaN,
-                phase=np.NaN,
-                spatial_frequency=np.NaN,
+                orientation=np.nan,
+                phase=np.nan,
+                spatial_frequency=np.nan,
                 image_index=ii,
             )
 
@@ -338,7 +338,7 @@ def get_stimulus_metadata(pkl) -> pd.DataFrame:
             'phase': float,
             'spatial_frequency': float,
             'image_index': int
-        })
+        }) 
 
     # get the grating metadata will be empty if gratings are absent
     grating_df = get_gratings_metadata(stimuli,
@@ -351,9 +351,9 @@ def get_stimulus_metadata(pkl) -> pd.DataFrame:
     omitted_df = pd.DataFrame({'image_category': ['omitted'],
                                'image_name': ['omitted'],
                                'image_set': ['omitted'],
-                               'orientation': np.NaN,
-                               'phase': np.NaN,
-                               'spatial_frequency': np.NaN,
+                               'orientation': np.nan,
+                               'phase': np.nan,
+                               'spatial_frequency': np.nan,
                                'image_index': len(stimulus_index_df)})
     stimulus_index_df = pd.concat([stimulus_index_df, omitted_df],
                                   ignore_index=True,
@@ -671,7 +671,7 @@ def get_visual_stimuli_df(
             num_sweeps = len(sweep_order)
             for i_attribute, stim_attribute in enumerate(stim_attributes):
                 attribute_by_sweep = np.zeros((num_sweeps,))
-                attribute_by_sweep[:] = np.NaN
+                attribute_by_sweep[:] = np.nan
                 for i_condition, condition in enumerate(unique_conditions):
                     sweeps_with_condition = np.argwhere(sweep_order == condition)[:, 0]
                     if condition > -1:  # blank sweep is -1
