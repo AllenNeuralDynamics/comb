@@ -71,6 +71,9 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         self.raw_folder_path = Path(raw_folder_path)
         self.session_name = self.raw_folder_path.name
+        
+        self.metadata = None
+        # TODO metadata
 
     def _load_behavior_stimulus_file(self):
         # load file when BehaviorDataset is instantiated
