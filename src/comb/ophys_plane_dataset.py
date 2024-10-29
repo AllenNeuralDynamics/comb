@@ -126,6 +126,9 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
         split_dict = self._parse_mesoscope_metadata()
         metadata.update(split_dict)
+        
+        # add plane path
+        metadata['plane_path'] = self.plane_folder_path
         return metadata
 
     def _set_all_nan_traces_invalid(self):

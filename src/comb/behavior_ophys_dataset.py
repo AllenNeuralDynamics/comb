@@ -35,6 +35,7 @@ class BehaviorOphysDataset:
     def __init__(self,
                 plane_folder_path: Union[str, Path],
                 raw_folder_path: Union[str, Path],
+                eye_tracking_path: Optional[Union[str, Path]] = None,
                 verbose: Optional[bool] = False):
 
         if not Path(plane_folder_path).exists():
@@ -44,6 +45,7 @@ class BehaviorOphysDataset:
 
         self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,raw_folder_path=raw_folder_path,verbose=verbose)
         self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path)
+        self.eye_tracking_dataset = None # TODO implement
         
         self.metadata = self._session_metadata()
     
@@ -53,18 +55,28 @@ class BehaviorOphysDataset:
         metadata_dict = metadata.metadata_for_multiplane_session(jsons_dict)
 
         # pop var not needed
-        remove_keys = ["ophys_fovs", "microscope_description","ophys_seg_approach","ophys_seg_descr"]
+        remove_keys = ["ophys_fovs", "microscope_description", "ophys_seg_approach","ophys_seg_descr"]
         for key in remove_keys:
             if metadata_dict.get(key) is not None:
                 metadata_dict.pop(key)
-        metadata_dict
-        
-
+    
         if self.ophys_plane_dataset.metadata is not None:
             metadata_dict["plane"] = self.ophys_plane_dataset.metadata
             
         if self.behavior_dataset.metadata is not None:
             metadata_dict["behavior"] = self.behavior_dataset.metadata
+            
+        if self.eye_tracking_dataset is not None:
+            metadata_dict["eye_tracking"] = self.eye_tracking_dataset.metadata
+
+        metadata_dict["raw_path"] = self.behavior_dataset.raw_folder_path
+        metadata_dict["processed_path"] = self.ophys_plane_dataset.plane_folder_path.parent
+        metadata_dict["session_name"] = self.behavior_dataset.raw_folder_path.stem
+        
+        # alphabetize keys
+        metadata_dict = dict(sorted(metadata_dict.items()))
+        
+        
         
         return metadata_dict
                 
