@@ -3,8 +3,8 @@ AllenSDK/allensdk/brain_observatory/behavior/data_objects/stimuli/fingerprint_st
 import numpy as np
 import pandas as pd
 
-from comb.data_files.behavior_stimulus_file BehaviorStimulusFile
-from allensdk.brain_observatory.behavior.data_objects import StimulusTimestamps
+from comb.data_files.behavior_stimulus_file import BehaviorStimulusFile
+from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
 
 
 class FingerprintStimulus:

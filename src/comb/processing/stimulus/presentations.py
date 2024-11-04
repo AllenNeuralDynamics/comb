@@ -20,6 +20,7 @@ from comb.processing.trials.trials import Trials
 from comb.core import DataObject
 from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
 from comb.data_files.behavior_stimulus_file import BehaviorStimulusFile
+from comb.processing.stimulus.fingerprint_stimulus import FingerprintStimulus
 
 from comb.processing.stimulus.stimulus_processing import (
     add_active_flag,
@@ -134,12 +135,12 @@ class Presentations(DataObject):
         cls,
         stimulus_file: BehaviorStimulusFile,
         stimulus_timestamps: StimulusTimestamps,
-        behavior_session_id: int,
+        # behavior_session_id: int, # use project_code instead MJD 07/23/2024
         trials: Optional[Trials] = None,
         limit_to_images: Optional[List] = None,
         column_list: Optional[List[str]] = None,
         fill_omitted_values: bool = True,
-        #project_code: Optional[ProjectCode] = None,
+        project_code: Optional[str] = None,
     ) -> "Presentations":
         """Get stimulus presentation data.
         Currently focusing on change detection tasks and STAGE_1 passive viewing.
@@ -162,6 +163,8 @@ class Presentations(DataObject):
             The columns and order of columns in the final dataframe
         fill_omitted_values : Optional, bool
             Whether to fill stop_time and duration for omitted frames
+        project_code: Optional, str
+            In COMB just using a string rather than DB query.
         # project_code: Optional, ProjectCode
         #     For released datasets, provide a project code
         #     to produce explicitly named stimulus_block column values in the
@@ -281,6 +284,7 @@ class Presentations(DataObject):
             "fingerprint" in stimulus_file.data["items"][behavior_key]["items"]
         )
         if has_fingerprint_stimulus:
+            #print("FINGERFINGER")
             stim_pres_df = cls._add_fingerprint_stimulus(
                 stimulus_presentations=stim_pres_df,
                 stimulus_file=stimulus_file,
@@ -291,10 +295,10 @@ class Presentations(DataObject):
             fill_omitted_values=fill_omitted_values,
             coerce_bool_to_boolean=True,
         )
-        # if project_code is not None:
-        #     stim_pres_df = produce_stimulus_block_names(
-        #         stim_pres_df, stimulus_file.session_type, project_code.value
-        #     )
+        if project_code is not None:
+            stim_pres_df = produce_stimulus_block_names(
+                stim_pres_df, stimulus_file.session_type, project_code
+            )
 
         return Presentations(
             presentations=stim_pres_df, column_list=column_list, trials=trials
@@ -630,7 +634,9 @@ class Presentations(DataObject):
                 stimulus_timestamps=stimulus_timestamps,
             )
         #except MalformedStimulusFileError:
-        except:
+        except Exception as e:
+            print("MalformedStimulusFileError: Fingerprint stimulus not added")
+            print(e)
             return stimulus_presentations
 
         stimulus_presentations = pd.concat(

@@ -60,13 +60,15 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                  raw_folder_path: Union[str, Path] = None, # where sync file is (pkl file)
                  oeid: Optional[str] = None,
                  data_path: Optional[str] = None,
-                 monitor_delay: float = 0.0):
+                 monitor_delay: float = 0.0,
+                 project_code: Optional[str] = None):
         super().__init__(raw_folder_path=raw_folder_path,
                          oeid=oeid,
                          data_path=data_path)
 
         self._load_behavior_stimulus_file()
         self.monitor_delay = monitor_delay # TODO: UPDATE
+        self.project_code = project_code
         self.get_stimulus_timestamps()
 
         self.raw_folder_path = Path(raw_folder_path)
@@ -119,7 +121,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         # else:
         st = Presentations.from_stimulus_file(stimulus_file=self.behavior_stimulus_file,
                                                 stimulus_timestamps=stimulus_timestamps,
-                                                behavior_session_id='DUMMY ID') # TODO: GET BEHAVIOR SESSION ID
+                                                project_code=self.project_code) # TODO: GET BEHAVIOR SESSION ID
 
         self._stimulus_presentations = st.value # TODO: probably smoother way to return than call value
 
