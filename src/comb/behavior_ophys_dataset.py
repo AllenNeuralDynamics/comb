@@ -4,8 +4,9 @@
 
 from comb.behavior_session_dataset import BehaviorSessionDataset
 from comb.ophys_plane_dataset import OphysPlaneDataset
-
 from comb.utils.dataframe_utils import df_col_to_array
+
+from aind_ophys_data_access import metadata
 
 from typing import Union, Optional
 from pathlib import Path
@@ -34,6 +35,7 @@ class BehaviorOphysDataset:
     def __init__(self,
                 plane_folder_path: Union[str, Path],
                 raw_folder_path: Union[str, Path],
+                eye_tracking_path: Optional[Union[str, Path]] = None,
                 verbose: Optional[bool] = False,
                 project_code: Optional[str] = None):
 
@@ -43,7 +45,40 @@ class BehaviorOphysDataset:
             raise FileNotFoundError(f"Path does not exist: {raw_folder_path}")
 
         self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,raw_folder_path=raw_folder_path,verbose=verbose)
-        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path, project_code=project_code)
+        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path)
+        self.eye_tracking_dataset = None # TODO implement
+        
+        self.metadata = self._session_metadata()
+    
+    def _session_metadata(self):
+        
+        jsons_dict = metadata.load_metadata_json_files(self.raw_folder_path)
+        metadata_dict = metadata.metadata_for_multiplane_session(jsons_dict)
+
+        # pop var not needed
+        remove_keys = ["ophys_fovs", "microscope_description", "ophys_seg_approach","ophys_seg_descr"]
+        for key in remove_keys:
+            if metadata_dict.get(key) is not None:
+                metadata_dict.pop(key)
+    
+        if self.ophys_plane_dataset.metadata is not None:
+            metadata_dict["plane"] = self.ophys_plane_dataset.metadata
+            
+        if self.behavior_dataset.metadata is not None:
+            metadata_dict["behavior"] = self.behavior_dataset.metadata
+            
+        if self.eye_tracking_dataset is not None:
+            metadata_dict["eye_tracking"] = self.eye_tracking_dataset.metadata
+
+        metadata_dict["raw_path"] = self.behavior_dataset.raw_folder_path
+        metadata_dict["processed_path"] = self.ophys_plane_dataset.plane_folder_path.parent
+        metadata_dict["session_name"] = self.behavior_dataset.raw_folder_path.stem
+        
+        # alphabetize keys
+        metadata_dict = dict(sorted(metadata_dict.items()))
+
+        return metadata_dict
+                
 
     def __getattr__(self, name):
         if hasattr(self.ophys_plane_dataset, name):
@@ -96,16 +131,27 @@ class BehaviorMultiplaneOphysDataset:
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
 
-    def all_traces_array(self, traces_key = "dff", return_roi_names = False, remove_nan_rows: Optional[bool] = True):
+    def all_traces_array(self, 
+                         traces_key: str = "dff", 
+                         return_roi_names: bool = False, 
+                         remove_nan_rows: Optional[bool] = True):
         """
 
         Parameters
         ----------
         traces_key : str, optional
             The key to access the traces
-            options are ["dff", "events", "filtered_events"] TODO: add raw, demix, etx
+            options are ["dff", "events", "filtered_events"] 
             by default "dff"
-        return_
+            TODO (maybe): add raw, demix, etx
+        return_roi_names : bool, optional
+            Whether to return the roi_names as well, by default False
+        remove_nan_rows : bool, optional
+            Whether to remove rows with all NaNs, by default True
+            
+        Returns
+        -------
+        traces_array : np.ndarray
         
         """
 
@@ -116,7 +162,7 @@ class BehaviorMultiplaneOphysDataset:
             attrb_key = "dff_traces"
         elif traces_key == "events" or traces_key == "filtered_events":
             attrb_key = "events"
-        # TODO: nueropile, raw, corrected etc.
+        # TODO: nueropil, raw, corrected etc.
 
         for opid, dataset in self.ophys_datasets.items():
             try: 
@@ -127,6 +173,7 @@ class BehaviorMultiplaneOphysDataset:
                     nan_rows = np.isnan(traces_array).all(axis=1)
                     traces_array = traces_array[~nan_rows]
                     roi_names = roi_names[~nan_rows]
+                    roi_names = np.array([f"{opid}_{int(roi):04}" for roi in roi_names])
 
                 roi_names_list.append(roi_names)
                 traces_list.append(traces_array)
@@ -134,6 +181,6 @@ class BehaviorMultiplaneOphysDataset:
                 print(f"{traces_key} not found for: {opid}")
                 continue
         if return_roi_names:
-            return np.concatenate(traces_list, axis=1), np.concatenate(roi_names_list)
+            return np.vstack(traces_list), np.concatenate(roi_names_list)
         else:
             return np.vstack(traces_list)

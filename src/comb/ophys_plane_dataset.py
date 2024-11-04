@@ -103,7 +103,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
                     
                     split_dict['roi_index'] = plane_dict['roi_index']
                     split_dict['plane_group_index'] = i
-                    split_dict['scanfield_z'] = plane_dict['scanfield_z'] # TODO rename 
+                    split_dict['scanfield_z'] = plane_dict['scanfield_z']
 
         return split_dict
 
@@ -126,6 +126,17 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
         split_dict = self._parse_mesoscope_metadata()
         metadata.update(split_dict)
+        
+        # add plane path
+        metadata['plane_path'] = self.plane_folder_path
+        
+        plane_folder_name = self.plane_folder_path.name
+        session_name = self.plane_folder_path.parent.name
+        subject_id = session_name.split("_")[1]
+        date = session_name.split("_")[2]
+        
+        
+        metadata['plane_session_key'] = f"{subject_id}_{date}_{plane_folder_name}"
         return metadata
 
     def _set_all_nan_traces_invalid(self):
@@ -182,7 +193,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return self._max_projection
 
     def get_motion_transform_csv(self):
-        self._motion_transform = pd.read_csv()
+        self._motion_transform = pd.read_csv(self.file_paths['motion_transform_csv'])
         return self._motion_transform
 
     # TODO: should we rename the attribute to segmentation? (MJD)
