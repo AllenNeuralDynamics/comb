@@ -284,7 +284,7 @@ class Presentations(DataObject):
             "fingerprint" in stimulus_file.data["items"][behavior_key]["items"]
         )
         if has_fingerprint_stimulus:
-            print("FINGERFINGER")
+            #print("FINGERFINGER")
             stim_pres_df = cls._add_fingerprint_stimulus(
                 stimulus_presentations=stim_pres_df,
                 stimulus_file=stimulus_file,
