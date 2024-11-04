@@ -175,6 +175,7 @@ class BehaviorMultiplaneOphysDataset:
                     nan_rows = np.isnan(traces_array).all(axis=1)
                     traces_array = traces_array[~nan_rows]
                     roi_names = roi_names[~nan_rows]
+                    roi_names = np.array([f"{opid}_{int(roi):04}" for roi in roi_names])
 
                 roi_names_list.append(roi_names)
                 traces_list.append(traces_array)
@@ -182,6 +183,6 @@ class BehaviorMultiplaneOphysDataset:
                 print(f"{traces_key} not found for: {opid}")
                 continue
         if return_roi_names:
-            return np.concatenate(traces_list, axis=1), np.concatenate(roi_names_list)
+            return np.vstack(traces_list), np.concatenate(roi_names_list)
         else:
             return np.vstack(traces_list)
