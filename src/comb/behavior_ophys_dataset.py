@@ -75,12 +75,9 @@ class BehaviorOphysDataset:
         
         # alphabetize keys
         metadata_dict = dict(sorted(metadata_dict.items()))
-        
-        
-        
+
         return metadata_dict
                 
-        
 
     def __getattr__(self, name):
         if hasattr(self.ophys_plane_dataset, name):
@@ -164,7 +161,7 @@ class BehaviorMultiplaneOphysDataset:
             attrb_key = "dff_traces"
         elif traces_key == "events" or traces_key == "filtered_events":
             attrb_key = "events"
-        # TODO: nueropile, raw, corrected etc.
+        # TODO: nueropil, raw, corrected etc.
 
         for opid, dataset in self.ophys_datasets.items():
             try: 
