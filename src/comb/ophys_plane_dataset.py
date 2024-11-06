@@ -42,6 +42,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     def __init__(self,
                 plane_folder_path: Union[str, Path] = None,
                 raw_folder_path: Union[str, Path] = None,
+                roi_matching_path: Optional[Union[str, Path]] = None,
                 opid: Optional[str] = None,
                 data_path: Optional[str] = None,
                 verbose=False):
@@ -69,11 +70,26 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             pass
 
         self.metadata['ophys_frame_rate'] = self._get_ophys_frame_rate()
+        
+        if roi_matching_path is not None:
+            self.file_paths['roi_matching_table'] = roi_matching_path
+            self.roi_matching_table = self._load_roi_matching_table()
 
 
     ####################################################################
     # Data files
     ####################################################################
+    
+    def _load_roi_matching_table(self):
+        # from plane metadata get roi index
+        container_index = self.metadata['roi_index']
+        
+        matching_path = Path(self.file_paths['roi_matching_table']) / str(container_index) / 'ROICaT.tracking.results.csv'
+        
+        print(matching_path)
+        
+        return pd.read_csv(matching_path)
+        
 
 
     def _resolve_ophys_experiment_id(self):

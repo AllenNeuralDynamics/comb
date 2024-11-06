@@ -37,14 +37,17 @@ class BehaviorOphysDataset:
                 raw_folder_path: Union[str, Path],
                 eye_tracking_path: Optional[Union[str, Path]] = None,
                 verbose: Optional[bool] = False,
-                project_code: Optional[str] = None):
+                project_code: Optional[str] = None,
+                roi_matching_path: Optional[Union[str, Path]] = None,):
 
         if not Path(plane_folder_path).exists():
             raise FileNotFoundError(f"Path does not exist: {plane_folder_path}")
         if not Path(raw_folder_path).exists():
             raise FileNotFoundError(f"Path does not exist: {raw_folder_path}")
 
-        self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,raw_folder_path=raw_folder_path,verbose=verbose)
+        self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,
+                                                     raw_folder_path=raw_folder_path,
+                                                     roi_matching_path=roi_matching_path, verbose=verbose)
         self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path, project_code=project_code)
         self.eye_tracking_dataset = None # TODO implement
         
