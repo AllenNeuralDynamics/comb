@@ -12,6 +12,8 @@ from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
 from comb.processing.stimulus.presentations import Presentations
 from comb.processing.biometrics.rewards import Rewards
 
+import comb.processing.eye_tracking as eye_tracking
+
 from . import data_file_keys
 
 from typing import Any, Optional, Union
@@ -44,8 +46,6 @@ class LazyLoadable(object):
         self.name = name
         self.calculate = calculate
 
-        
-
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self
@@ -61,6 +61,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                  oeid: Optional[str] = None,
                  data_path: Optional[str] = None,
                  monitor_delay: float = 0.0,
+                 eye_tracking_path: Optional[Union[str, Path]] = None,
                  project_code: Optional[str] = None):
         super().__init__(raw_folder_path=raw_folder_path,
                          oeid=oeid,
@@ -73,6 +74,10 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         self.raw_folder_path = Path(raw_folder_path)
         self.session_name = self.raw_folder_path.name
+
+        if eye_tracking_path is not None:
+            self.file_paths['eye_tracking'] = Path(eye_tracking_path)
+            #self.eye_tracking = _load_and_process_eye_tracking()
         
         self.metadata = None
         # TODO metadata
@@ -99,6 +104,23 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #         pkl_data, self.stimulus_timestamps)
 
     #     return self._stimulus_presentations
+
+    def get_eye_tracking_table(self):
+        """Load and process eye tracking data"""
+
+        try:
+            eye_tracking_file = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
+            eye_tracking_table = eye_tracking.load_eye_tracking_hdf(eye_tracking_file)
+
+            # todo: maybe create additional processing (handle metadata frame + stimulus timestamps)
+            #processed_eye_tracking_data = process_eye_tracking_data(eye_tracking_data)
+        except:
+            eye_tracking_table = None
+
+        self._eye_tracking_table = eye_tracking_table
+    
+        return self._eye_tracking_table
+    eye_tracking = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
 
     def get_stimulus_presentations(self, monitor_delay=0.03613):
         """"TODO"""
@@ -182,10 +204,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     def get_running_speed(self):
         zscore_threshold = 10.0
         lowpass_filter = True
-        # NOTE: do we read in the pkl file again?
-        
 
-        # NOTE: SDK includes options to read timestamps from pkl file.
         stimulus_timestamps = self.stimulus_timestamps 
 
         running_data_df = running_processing.get_running_df(
