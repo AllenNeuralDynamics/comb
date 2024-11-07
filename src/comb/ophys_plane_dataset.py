@@ -90,7 +90,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         assert len(plane_folders) == 8, f"Expected 8 plane folders, found {len(plane_folders)}"
         plane_folders = sorted(plane_folders, key=lambda x: x.name)
         plane_folder_index_map = {plane_folder.name: i for i, plane_folder in enumerate(plane_folders)}
-        print(plane_folder_index_map)
         
         return plane_folder_index_map
 
