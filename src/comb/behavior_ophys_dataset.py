@@ -107,10 +107,14 @@ class BehaviorMultiplaneOphysDataset:
         """
     def __init__(self, 
                  session_folder_path: Union[str,Path], 
-                 raw_folder_path: Union[str, Path]):
+                 raw_folder_path: Union[str, Path],
+                 project_code: Optional[str] = None,
+                 roi_matching_path: Optional[Union[str, Path]] = None,):
         
         self.session_folder_path = Path(session_folder_path)
         self.raw_folder_path = Path(raw_folder_path)
+        self.roi_matching_path = roi_matching_path
+        self.project_code = project_code
         
         if not Path(session_folder_path).exists():
             raise FileNotFoundError(f"Path does not exist: {session_folder_path}")
@@ -119,13 +123,16 @@ class BehaviorMultiplaneOphysDataset:
 
         self.ophys_datasets = {}
         self._get_ophys_datasets()
-        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path)
+        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path,
+                                                       project_code=self.project_code)
 
     def _get_ophys_datasets(self):
         for plane_folder in self.session_folder_path.glob("*"):
             if plane_folder.is_dir() and not plane_folder.stem.startswith("nextflow"):
                 opid = plane_folder.stem
-                self.ophys_datasets[opid] = OphysPlaneDataset(plane_folder, raw_folder_path=self.raw_folder_path)
+                self.ophys_datasets[opid] = OphysPlaneDataset(plane_folder, 
+                                                              raw_folder_path=self.raw_folder_path, 
+                                                              roi_matching_path=self.roi_matching_path)
 
     def __getattr__(self, name):
         if hasattr(self.datasets, name):
