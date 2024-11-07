@@ -48,8 +48,9 @@ class BehaviorOphysDataset:
         self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,
                                                      raw_folder_path=raw_folder_path,
                                                      roi_matching_path=roi_matching_path, verbose=verbose)
-        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path, project_code=project_code)
-        self.eye_tracking_dataset = None # TODO implement
+        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path, 
+                                                       project_code=project_code, 
+                                                       eye_tracking_path=eye_tracking_path)
         
         self.metadata = self._session_metadata()
     
@@ -70,8 +71,8 @@ class BehaviorOphysDataset:
         if self.behavior_dataset.metadata is not None:
             metadata_dict["behavior"] = self.behavior_dataset.metadata
             
-        if self.eye_tracking_dataset is not None:
-            metadata_dict["eye_tracking"] = self.eye_tracking_dataset.metadata
+        # if self.eye_tracking_path is not None:
+        #     metadata_dict["eye_tracking"] = self.eye_tracking_dataset.metadata
 
         metadata_dict["raw_path"] = self.behavior_dataset.raw_folder_path
         metadata_dict["processed_path"] = self.ophys_plane_dataset.plane_folder_path.parent
@@ -109,6 +110,7 @@ class BehaviorMultiplaneOphysDataset:
                  session_folder_path: Union[str,Path], 
                  raw_folder_path: Union[str, Path],
                  project_code: Optional[str] = None,
+                 eye_tracking_path: Optional[Union[str, Path]] = None,
                  roi_matching_path: Optional[Union[str, Path]] = None,):
         
         self.session_folder_path = Path(session_folder_path)
@@ -124,7 +126,8 @@ class BehaviorMultiplaneOphysDataset:
         self.ophys_datasets = {}
         self._get_ophys_datasets()
         self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path,
-                                                       project_code=self.project_code)
+                                                       project_code=self.project_code,
+                                                       eye_tracking_path=eye_tracking_path)
 
     def _get_ophys_datasets(self):
         for plane_folder in self.session_folder_path.glob("*"):
