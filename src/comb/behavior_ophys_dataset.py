@@ -128,6 +128,17 @@ class BehaviorMultiplaneOphysDataset:
         self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path,
                                                        project_code=self.project_code,
                                                        eye_tracking_path=eye_tracking_path)
+        
+    def as_bod(self):
+        """return a list of BehaviorOphysDataset objects from the ophys_datasets"""
+        bods = []
+        for opid, dataset in self.ophys_datasets.items():
+            bod = BehaviorOphysDataset(plane_folder_path=dataset.plane_folder_path,
+                                       raw_folder_path=self.raw_folder_path,
+                                       project_code=self.project_code,
+                                       roi_matching_path=self.roi_matching_path)
+            bods.append(bod)
+        return bods
 
     def _get_ophys_datasets(self):
         for plane_folder in self.session_folder_path.glob("*"):
