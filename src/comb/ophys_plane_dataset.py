@@ -1,6 +1,8 @@
 from comb.ophys_plane_grabber import OphysPlaneGrabber
 from comb.processing.sync.sync_utilities import get_synchronized_frame_times
 
+from aind_ophys_data_access import metadata
+
 from typing import Any, Optional,Union
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -53,6 +55,9 @@ class OphysPlaneDataset(OphysPlaneGrabber):
                          verbose=verbose)
 
         self.metadata = self._set_metadata()
+        
+        self._add_plane_order_index()
+        self._set_metadata_from_jsons()
 
         # keep for legacy purposes
         self.ophys_experiment_id = self._resolve_ophys_experiment_id()
@@ -139,9 +144,9 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
                 if str(plane_dict['experiment_id']) == self.opid:
                     
-                    split_dict['roi_index'] = plane_dict['roi_index']
+                    # split_dict['roi_index'] = plane_dict['roi_index']
                     split_dict['plane_group_index'] = i
-                    split_dict['scanfield_z'] = plane_dict['scanfield_z']
+                    split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
 
         return split_dict
 
@@ -173,9 +178,36 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         subject_id = session_name.split("_")[1]
         date = session_name.split("_")[2]
         
+        # for this plane set _inferred_plane_order
         
         metadata['plane_session_key'] = f"{subject_id}_{date}_{plane_folder_name}"
+        
+        # TODO: should get all metadata from jsons or docdb.
+        # # open session.json
+        # with open(self.file_paths['session_json']) as json_file:
+        #     session = json.load(json_file)
+        
         return metadata
+    
+    def _set_metadata_from_jsons(self):
+        md = {}
+        
+        json_dicts = metadata.load_metadata_json_files(self.raw_folder_path)
+        
+        ophys_fovs_dict = metadata.extract_ophys_fovs(json_dicts["session"], index_key_only = True)
+        
+        # using the inferred plane order, grab the right plane_metadata
+        plane_order_map = self._infer_plane_order()
+        plane_order_index = plane_order_map[self.plane_folder_path.name]
+        fov_metadata = ophys_fovs_dict[plane_order_index]
+        
+        self.metadata.update(fov_metadata)
+        
+        
+    
+    def _add_plane_order_index(self):
+        plane_order_map = self._infer_plane_order()
+        self.metadata['plane_order_index'] = plane_order_map[self.plane_folder_path.name]
 
     def _set_all_nan_traces_invalid(self):
         ''' Only possible when it has _cell_specimen_table as an attribute.

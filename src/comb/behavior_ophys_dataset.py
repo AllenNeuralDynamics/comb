@@ -78,6 +78,12 @@ class BehaviorOphysDataset:
         metadata_dict["processed_path"] = self.ophys_plane_dataset.plane_folder_path.parent
         metadata_dict["session_name"] = self.behavior_dataset.raw_folder_path.stem
         
+        # add ophys_frame_rate for downstream
+        metadata_dict["ophys_frame_rate"] = metadata_dict["plane"]["ophys_frame_rate"]
+        
+        # add imaging_depth from json_dict["session"] # DELETE 
+        #metadata_dict["plane"]["imaging_depth"] = {"imaging_depth": jsons_dict["session"]["targeted_depth"]}
+        
         # alphabetize keys
         metadata_dict = dict(sorted(metadata_dict.items()))
 
