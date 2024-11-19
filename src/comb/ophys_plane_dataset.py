@@ -47,7 +47,8 @@ class OphysPlaneDataset(OphysPlaneGrabber):
                 roi_matching_path: Optional[Union[str, Path]] = None,
                 opid: Optional[str] = None,
                 data_path: Optional[str] = None,
-                verbose=False):
+                verbose=False,
+                pipeline_version: Optional[str] = None,):
         super().__init__(plane_folder_path=plane_folder_path,
                          raw_folder_path=raw_folder_path,
                          opid=opid,
@@ -58,6 +59,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         
         self._add_plane_order_index()
         self._set_metadata_from_jsons()
+        self.pipeline_version = pipeline_version
 
         # keep for legacy purposes
         self.ophys_experiment_id = self._resolve_ophys_experiment_id()
@@ -86,17 +88,50 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     ####################################################################
     
     
-    def _infer_plane_order(self):
-        processed_path = self.metadata["plane_path"].parent
-        # get names of folders in processed_path
-        plane_folders = [f for f in processed_path.iterdir() if f.is_dir()]
+    def _infer_plane_sort_index(self):
+        """The names of the plane folders, sorted, determine the order of the planes
         
-        # assert 8 folders
-        assert len(plane_folders) == 8, f"Expected 8 plane folders, found {len(plane_folders)}"
-        plane_folders = sorted(plane_folders, key=lambda x: x.name)
-        plane_folder_index_map = {plane_folder.name: i for i, plane_folder in enumerate(plane_folders)}
+        In some cases this is used for container assignment.
         
+        Returns
+        -------
+        plane_folder_index_map : dict
+        """
+        
+        if self.pipeline_version == 'v6':
+            
+            # TODO: getting plane folders and validating can be elsehwere
+            # TODO: look up from brain areas?
+            valid_prefix = ["VISp"]
+            
+            processed_path = self.metadata["plane_path"].parent
+            plane_folders = [f for f in processed_path.iterdir() if f.is_dir()]
+            
+            assert all([f.name.split('_')[1].isdigit() for f in plane_folders]), "Plane folders are not named as expected"
+            assert all([f.name.split('_')[0] in valid_prefix for f in plane_folders]), "Plane folders are not named as expected"
+            plane_folders = sorted(plane_folders, key=lambda x: x.name)
+            plane_folder_index_map = {f.name: int(f.name.split('_')[1]) for f in plane_folders}
+
+        elif self.pipeline_version == 'v4':
+            # generally else = v4, specifically for saffron sessions
+            
+            processed_path = self.metadata["plane_path"].parent
+            plane_folders = [f for f in processed_path.iterdir() if f.is_dir()]
+            
+            # assert 8 folders
+            assert len(plane_folders) == 8, f"Expected 8 plane folders, found {len(plane_folders)}"
+            plane_folders = sorted(plane_folders, key=lambda x: x.name)
+            plane_folder_index_map = {plane_folder.name: i for i, plane_folder in enumerate(plane_folders)}
+        
+        else:
+            raise NotImplementedError(f"Pipeline version {self.pipeline_version} not supported")
+
         return plane_folder_index_map
+    
+    
+    def _add_plane_order_index(self):
+        plane_order_map = self. _infer_plane_sort_index()
+        self.metadata['plane_order_index'] = plane_order_map[self.plane_folder_path.name]
 
     
     def _load_roi_matching_table(self):
@@ -117,7 +152,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         
         return match_table
         
-
 
     def _resolve_ophys_experiment_id(self):
         if self.plane_folder_path is not None:
@@ -160,8 +194,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
         return frame_rate
 
-
-
     def _set_metadata(self):
         metadata = {}
         with open(self.file_paths['platform_json']) as json_file:
@@ -191,23 +223,21 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     
     def _set_metadata_from_jsons(self):
         md = {}
-        
         json_dicts = metadata.load_metadata_json_files(self.raw_folder_path)
         
-        ophys_fovs_dict = metadata.extract_ophys_fovs(json_dicts["session"], index_key_only = True)
-        
+        index_key_only = True if self.pipeline_version == 'v4' else False
+        ophys_fovs_dict = metadata.extract_ophys_fovs(json_dicts["session"], 
+                                                      index_key_only = index_key_only)
+
         # using the inferred plane order, grab the right plane_metadata
         plane_order_map = self._infer_plane_order()
         plane_order_index = plane_order_map[self.plane_folder_path.name]
         fov_metadata = ophys_fovs_dict[plane_order_index]
-        
+
         self.metadata.update(fov_metadata)
         
-        
-    
-    def _add_plane_order_index(self):
-        plane_order_map = self._infer_plane_order()
-        self.metadata['plane_order_index'] = plane_order_map[self.plane_folder_path.name]
+
+
 
     def _set_all_nan_traces_invalid(self):
         ''' Only possible when it has _cell_specimen_table as an attribute.
