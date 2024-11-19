@@ -86,8 +86,22 @@ def get_sync_file_path(input_path, verbose=False):
         platform_path = find_data_file(input_path, file_parts["platform_json"])
         with open(platform_path, 'r') as f:
             platform_json = json.load(f)
+
         ophys_folder = check_ophys_folder(input_path)
-        sync_file_path = ophys_folder / platform_json['sync_file']
+        behavior_folder = input_path / "behavior"
+        
+        parent_folders = [ophys_folder, behavior_folder]
+        for f in parent_folders:
+            if f is not None:
+                try:
+                    sync_file_path = f / platform_json["sync_file"]
+                    if sync_file_path.exists():
+                        break
+                except KeyError as e:
+                    sync_file_path = None
+            else:
+                sync_file_path = None
+
 
         if not sync_file_path.exists():
             logger.error(f"Unsupported data asset structure, sync file not found in {sync_file_path}")

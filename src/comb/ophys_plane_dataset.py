@@ -54,12 +54,12 @@ class OphysPlaneDataset(OphysPlaneGrabber):
                          opid=opid,
                          data_path=data_path,
                          verbose=verbose)
-
+        self.pipeline_version = pipeline_version
         self.metadata = self._set_metadata()
         
         self._add_plane_order_index()
         self._set_metadata_from_jsons()
-        self.pipeline_version = pipeline_version
+        
 
         # keep for legacy purposes
         self.ophys_experiment_id = self._resolve_ophys_experiment_id()
@@ -98,7 +98,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         plane_folder_index_map : dict
         """
         
-        if self.pipeline_version == 'v6':
+        if self.pipeline_version == 'v6-from_lims':
             
             # TODO: getting plane folders and validating can be elsehwere
             # TODO: look up from brain areas?
@@ -112,7 +112,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             plane_folders = sorted(plane_folders, key=lambda x: x.name)
             plane_folder_index_map = {f.name: int(f.name.split('_')[1]) for f in plane_folders}
 
-        elif self.pipeline_version == 'v4':
+        elif self.pipeline_version == 'v4-from_lims':
             # generally else = v4, specifically for saffron sessions
             
             processed_path = self.metadata["plane_path"].parent
@@ -173,14 +173,23 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         split_dict['plane_group_count'] = len(split_json['plane_groups'])
 
         for i, plane_group in enumerate(split_json['plane_groups']):
-            for plane_dict in plane_group['ophys_experiments']:
-                # find index of plane['experiment_id'] that matches self.opid
+            for j, plane_dict in enumerate(plane_group['ophys_experiments']):
+                if self.pipeline_version == 'v6-from_lims':
+                    # in v6 we jsut need to get the last index number (VISp_0, VISp_1, ...)
+                    plane_meso_json_index = i + j
+                    if str(plane_meso_json_index)  == self.opid.split("_")[1]:
+                        split_dict['plane_group_index'] = i
+                        split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
 
-                if str(plane_dict['experiment_id']) == self.opid:
+                elif self.pipeline_version == 'v4-from_lims':
+                    # In v4, with have the actual ophys_experiment_id in the asset and we can look 
+                    # up by that in the splitting_json
                     
-                    # split_dict['roi_index'] = plane_dict['roi_index']
-                    split_dict['plane_group_index'] = i
-                    split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
+                    if str(plane_dict['experiment_id']) == self.opid:
+                        
+                        # split_dict['roi_index'] = plane_dict['roi_index']
+                        split_dict['plane_group_index'] = i
+                        split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
 
         return split_dict
 
@@ -200,6 +209,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             platform = json.load(json_file)
 
         split_dict = self._parse_mesoscope_metadata()
+        print(split_dict)
         metadata.update(split_dict)
         
         # add plane path
@@ -225,19 +235,18 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         md = {}
         json_dicts = metadata.load_metadata_json_files(self.raw_folder_path)
         
-        index_key_only = True if self.pipeline_version == 'v4' else False
+        index_key_only = True if self.pipeline_version == 'v4-from_lims' else False
         ophys_fovs_dict = metadata.extract_ophys_fovs(json_dicts["session"], 
                                                       index_key_only = index_key_only)
 
         # using the inferred plane order, grab the right plane_metadata
-        plane_order_map = self._infer_plane_order()
-        plane_order_index = plane_order_map[self.plane_folder_path.name]
-        fov_metadata = ophys_fovs_dict[plane_order_index]
-
+        if self.pipeline_version == 'v4-from_lims':
+            plane_order_map = self._infer_plane_sort_index()
+            plane_order_index = plane_order_map[self.plane_folder_path.name]
+            fov_metadata = ophys_fovs_dict[plane_order_index]
+        elif self.pipeline_version == 'v6-from_lims':
+            fov_metadata = ophys_fovs_dict[self.plane_folder_path.name]
         self.metadata.update(fov_metadata)
-        
-
-
 
     def _set_all_nan_traces_invalid(self):
         ''' Only possible when it has _cell_specimen_table as an attribute.
