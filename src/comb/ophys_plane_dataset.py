@@ -3,6 +3,8 @@ from comb.processing.sync.sync_utilities import get_synchronized_frame_times
 
 from aind_ophys_data_access import metadata
 
+from . import file_handling # TODO change to data_access?
+
 from typing import Any, Optional,Union
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -307,29 +309,37 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
     # TODO: should we rename the attribute to segmentation? (MJD)
     def get_cell_specimen_table(self):
+        
         if hasattr(self, '_cell_specimen_table') and (self._cell_specimen_table is not None):
             return self._cell_specimen_table
         else:
-            with open(self.file_paths['segmentation_output_json']) as json_file:
-                segmentation_output = json.load(json_file)
-            cell_specimen_table = pd.DataFrame(segmentation_output)
-            cell_specimen_table = cell_specimen_table.rename(columns={'id': 'cell_roi_id'})
-            cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
-            self._set_all_nan_traces_invalid()
-            self._cell_specimen_table = cell_specimen_table
-        return self._cell_specimen_table
+        
+            pixel_masks = file_handling.load_sparse_array(self.file_paths['extraction_h5'])
+            roi_table = pd.DataFrame(index=range(pixel_masks.shape[0]), columns=['mask_matrix'])
+            for i in range(pixel_masks.shape[0]):
+                roi_table.loc[i, 'mask_matrix'] = pixel_masks[i]
+
+            # legacy columns
+            legacy_cols = ['valid_roi', 'exclusion_labels']
+
+            # with open(self.file_paths['extraction_h5']) as json_file:
+            #     segmentation_output = json.load(json_file)
+            # cell_specimen_table = pd.DataFrame(segmentation_output)
+            # cell_specimen_table = cell_specimen_table.rename(columns={'id': 'cell_roi_id'})
+            # cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
+            # self._set_all_nan_traces_invalid()
+            
+            self._cell_specimen_table = roi_table
+            return self._cell_specimen_table
 
     def get_raw_fluorescence_traces(self):
-
-        with h5py.File(self.file_paths['roi_traces_h5'], 'r') as f:
-            traces = np.asarray(f['data'])
-            roi_ids = [int(roi_id) for roi_id in np.asarray(f['roi_names'])]
-
-        traces_df = pd.DataFrame(index=roi_ids, columns=['raw_fluorescence_traces'])
-        for i, roi_id in enumerate(roi_ids):
-            traces_df.loc[roi_id, 'raw_fluorescence_traces'] = traces[i, :]
-        traces_df = traces_df.rename(columns={'roi_id': 'cell_roi_id'})
-#        traces_df = self._add_csid_to_table(traces_df)
+        raw_traces, cell_roi_ids = file_handling.load_signals(self.file_paths['extraction_h5'], 
+                                                              h5_group="traces", h5_key="roi")
+        
+        traces_df = pd.DataFrame(index=cell_roi_ids, columns=['raw_fluorescence_traces'])
+        for i, crid in enumerate(cell_roi_ids):
+            traces_df.loc[crid, 'raw_fluorescence_traces'] = raw_traces[i, :]
+#       traces_df = self._add_csid_to_table(traces_df)
         self._raw_fluorescence_traces = traces_df
         return self._raw_fluorescence_traces
 
@@ -437,8 +447,12 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     def get_dff_traces(self):
 
         f = h5py.File(self.file_paths['dff_h5'], mode='r')
+        print(f.keys())
         dff_traces_array = np.asarray(f['data'])
-        roi_ids = [int(roi_id) for roi_id in np.asarray(f['roi_names'])]
+        #roi_ids = [int(roi_id) for roi_id in np.asarray(f['roi_names'])]
+        
+        # no ids in dff file, just use index
+        roi_ids = np.arange(dff_traces_array.shape[0]) 
         baseline = [value for value in np.asarray(f['baseline'])]
         noise = [value for value in np.asarray(f['noise'])]
         skewness = [value for value in np.asarray(f['skewness'])]
@@ -460,13 +474,17 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
         f = h5py.File(self.file_paths["events_oasis_h5"], mode='r')
         events_array = np.asarray(f['events'])
-        roi_ids = [int(roi_id) for roi_id in np.asarray(f['cell_roi_id'])]
+        
+        # just make roi_ids as for index
+        #roi_ids = [int(roi_id) for roi_id in np.asarray(f['cell_roi_id'])]
+        roi_ids = np.arange(events_array.shape[0])
 
         # convert to dataframe 
         events = pd.DataFrame(index=roi_ids, columns=['events'])
         for i, roi_id in enumerate(roi_ids):
             events.loc[roi_id, 'events'] = events_array[i, :]
-        events['filtered_events'] = events['events']
+        # just make nan as for each row
+        events['filtered_events'] = np.nan
         events.index.name = 'cell_roi_id'
         events = self._add_csid_to_table(events)
         self._events = events
