@@ -315,12 +315,42 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         else:
         
             pixel_masks = file_handling.load_sparse_array(self.file_paths['extraction_h5'])
-            roi_table = pd.DataFrame(index=range(pixel_masks.shape[0]), columns=['mask_matrix'])
+            roi_table = pd.DataFrame(index=range(pixel_masks.shape[0]), columns=['mask_matrix',
+                                                                                 'height',
+                                                                                 'width',
+                                                                                 'X',
+                                                                                 'Y',
+                                                                                 'centroid',
+                                                                                 'bounding_box',
+                                                                                 'valid_roi',
+                                                                                 'exclusion_labels'])
             for i in range(pixel_masks.shape[0]):
-                roi_table.loc[i, 'mask_matrix'] = pixel_masks[i]
+                roi_mask = pixel_masks[i]
+                roi_table.loc[i, 'mask_matrix'] = roi_mask
+            
+                # find a bounding box around roi
+                non_zero_coords = np.array(np.where(roi_mask > 0))  # Shape (2, N) where N = number of non-zero points
 
-            # legacy columns
-            legacy_cols = ['valid_roi', 'exclusion_labels']
+                # Get the bounds of the bounding box
+                min_row, min_col = non_zero_coords.min(axis=1)
+                max_row, max_col = non_zero_coords.max(axis=1)
+
+                # Bounding box coordinates
+                bounding_box = (min_row, min_col, max_row, max_col)
+                height = max_row - min_row
+                width = max_col - min_col
+
+                roi_table.loc[i, 'bounding_box'] = [bounding_box]
+                roi_table.loc[i, 'height'] = height
+                roi_table.loc[i, 'width'] = width
+                roi_table.loc[i, 'X'] = min_col
+                roi_table.loc[i, 'Y'] = min_row
+                roi_table.loc[i, 'centroid'] = (min_col + width / 2, min_row + height / 2)
+                
+                # legacy attributes
+                roi_table.loc[i, 'valid_roi'] = True
+                roi_table.loc[i, 'exclusion_labels'] = None
+
 
             # with open(self.file_paths['extraction_h5']) as json_file:
             #     segmentation_output = json.load(json_file)
