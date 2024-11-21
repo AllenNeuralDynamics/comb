@@ -4,6 +4,7 @@ from comb.processing.sync.sync_utilities import get_synchronized_frame_times
 from aind_ophys_data_access import metadata
 
 from . import file_handling # TODO change to data_access?
+from aind_ophys_data_access import rois
 
 from typing import Any, Optional,Union
 import matplotlib.pyplot as plt
@@ -306,56 +307,59 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     def get_motion_transform_csv(self):
         self._motion_transform = pd.read_csv(self.file_paths['motion_transform_csv'])
         return self._motion_transform
+    
+    def roi_table_from_mask_arrays(pixel_masks: np.ndarray):
+        
+        # assert 3d
+        columns = ['mask_matrix',
+                    'height',
+                    'width',
+                    'X',
+                    'Y',
+                    'centroid',
+                    'bounding_box',
+                    'valid_roi',
+                    'exclusion_labels']
+
+        roi_table = pd.DataFrame(index=range(pixel_masks.shape[0]), columns=columns)
+        for i in range(pixel_masks.shape[0]):
+            roi_mask = pixel_masks[i]
+            roi_table.loc[i, 'mask_matrix'] = roi_mask
+        
+            # find a bounding box around roi
+            non_zero_coords = np.array(np.where(roi_mask > 0))  # Shape (2, N) where N = number of non-zero points
+
+            # Get the bounds of the bounding box
+            min_row, min_col = non_zero_coords.min(axis=1)
+            max_row, max_col = non_zero_coords.max(axis=1)
+
+            # Bounding box coordinates
+            bounding_box = (min_row, min_col, max_row, max_col)
+            height = max_row - min_row
+            width = max_col - min_col
+
+            roi_table.loc[i, 'bounding_box'] = [bounding_box]
+            roi_table.loc[i, 'height'] = height
+            roi_table.loc[i, 'width'] = width
+            roi_table.loc[i, 'X'] = min_col
+            roi_table.loc[i, 'Y'] = min_row
+            roi_table.loc[i, 'centroid'] = (min_col + width / 2, min_row + height / 2)
+            
+            # legacy attributes
+            roi_table.loc[i, 'valid_roi'] = True
+            roi_table.loc[i, 'exclusion_labels'] = None
+                
+        return roi_table
 
     # TODO: should we rename the attribute to segmentation? (MJD)
     def get_cell_specimen_table(self):
-        
         if hasattr(self, '_cell_specimen_table') and (self._cell_specimen_table is not None):
             return self._cell_specimen_table
         else:
-        
             pixel_masks = file_handling.load_sparse_array(self.file_paths['extraction_h5'])
-            roi_table = pd.DataFrame(index=range(pixel_masks.shape[0]), columns=['mask_matrix',
-                                                                                 'height',
-                                                                                 'width',
-                                                                                 'X',
-                                                                                 'Y',
-                                                                                 'centroid',
-                                                                                 'bounding_box',
-                                                                                 'valid_roi',
-                                                                                 'exclusion_labels'])
-            for i in range(pixel_masks.shape[0]):
-                roi_mask = pixel_masks[i]
-                roi_table.loc[i, 'mask_matrix'] = roi_mask
             
-                # find a bounding box around roi
-                non_zero_coords = np.array(np.where(roi_mask > 0))  # Shape (2, N) where N = number of non-zero points
-
-                # Get the bounds of the bounding box
-                min_row, min_col = non_zero_coords.min(axis=1)
-                max_row, max_col = non_zero_coords.max(axis=1)
-
-                # Bounding box coordinates
-                bounding_box = (min_row, min_col, max_row, max_col)
-                height = max_row - min_row
-                width = max_col - min_col
-
-                roi_table.loc[i, 'bounding_box'] = [bounding_box]
-                roi_table.loc[i, 'height'] = height
-                roi_table.loc[i, 'width'] = width
-                roi_table.loc[i, 'X'] = min_col
-                roi_table.loc[i, 'Y'] = min_row
-                roi_table.loc[i, 'centroid'] = (min_col + width / 2, min_row + height / 2)
-                
-                # legacy attributes
-                roi_table.loc[i, 'valid_roi'] = True
-                roi_table.loc[i, 'exclusion_labels'] = None
-
-
-            # with open(self.file_paths['extraction_h5']) as json_file:
-            #     segmentation_output = json.load(json_file)
-            # cell_specimen_table = pd.DataFrame(segmentation_output)
-            # cell_specimen_table = cell_specimen_table.rename(columns={'id': 'cell_roi_id'})
+            roi_table = rois.roi_table_from_mask_arrays(pixel_masks)
+            roi_table = roi_table.rename(columns={'id': 'cell_roi_id'})
             # cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
             # self._set_all_nan_traces_invalid()
             

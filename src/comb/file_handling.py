@@ -69,11 +69,6 @@ def check_behavior_folder(path):
     return behavior_folder
 
 
-
-
-
-
-
 ## update in aind-ohys-data-access
 def load_signals(h5_file: Path, h5_group=None, h5_key=None) -> tuple:
     """Loads extracted signal data from aind-ophys-extraction-suite2p
@@ -91,6 +86,8 @@ def load_signals(h5_file: Path, h5_group=None, h5_key=None) -> tuple:
     (np.array, ImageSegmentation)
         Trace array and updated segmentation object
     """
+    # add warning: moved to aind-ophys-data-access, will be removed in future
+    logger.warning(f"this function (load_signals) has been moved to aind-ophys-data-access, will be removed in future")
     if not h5_group:
         with h5py.File(h5_file, "r") as f:
             traces = f[h5_key][:]
@@ -105,6 +102,7 @@ def load_signals(h5_file: Path, h5_group=None, h5_key=None) -> tuple:
 
 
 def load_generic_group(h5_file: Path, h5_group=None, h5_key=None) -> np.array:
+
     """Loads extracted signal data from aind-ophys-extraction-suite2p
 
     Parameters
@@ -121,6 +119,8 @@ def load_generic_group(h5_file: Path, h5_group=None, h5_key=None) -> np.array:
     (np.array)
         Segmentation masks on full image
     """
+    # add warning: moved to aind-ophys-data-access, will be removed in future
+    logger.warning(f"this function: (load_generic_group) has been moved to aind-ophys-data-access, will be removed in future")
     print("h5", h5_file)
     with h5py.File(h5_file, "r") as f:
         masks = f[h5_group][h5_key][:]
@@ -129,6 +129,8 @@ def load_generic_group(h5_file: Path, h5_group=None, h5_key=None) -> np.array:
 
 
 def load_sparse_array(h5_file):
+    # add warning: moved to aind-ophys-data-access, will be removed in future
+    logger.warning(f"this function: {load_sparse_array} has been moved to aind-ophys-data-access, will be removed in future")
     with h5py.File(h5_file) as f:
         data = f["rois"]["data"][:]
         coords = f["rois"]["coords"][:]
@@ -138,10 +140,12 @@ def load_sparse_array(h5_file):
     return pixelmasks
 
 
-
-# update in aind-ophys-data-access
 def get_sync_file_path(input_path, verbose=False):
     """Find the Sync file"""
+    
+    # add warning: moved to aind-ophys-data-access, will be removed in future
+    logger.warning(f"this function: (get_sync_file_path) has been moved to aind-ophys-data-access, will be removed in future")
+
     file_parts = {}
     input_path = Path(input_path)
     try: 
