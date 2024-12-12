@@ -38,7 +38,8 @@ class BehaviorOphysDataset:
                 eye_tracking_path: Optional[Union[str, Path]] = None,
                 verbose: Optional[bool] = False,
                 project_code: Optional[str] = None,
-                roi_matching_path: Optional[Union[str, Path]] = None,):
+                roi_matching_path: Optional[Union[str, Path]] = None,
+                pipeline_version: Optional[str] = None,):
 
         if not Path(plane_folder_path).exists():
             raise FileNotFoundError(f"Path does not exist: {plane_folder_path}")
@@ -47,7 +48,8 @@ class BehaviorOphysDataset:
 
         self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,
                                                      raw_folder_path=raw_folder_path,
-                                                     roi_matching_path=roi_matching_path, verbose=verbose)
+                                                     roi_matching_path=roi_matching_path, verbose=verbose,
+                                                     pipeline_version=pipeline_version)
         self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path, 
                                                        project_code=project_code, 
                                                        eye_tracking_path=eye_tracking_path)
@@ -117,12 +119,14 @@ class BehaviorMultiplaneOphysDataset:
                  raw_folder_path: Union[str, Path],
                  project_code: Optional[str] = None,
                  eye_tracking_path: Optional[Union[str, Path]] = None,
-                 roi_matching_path: Optional[Union[str, Path]] = None,):
+                 roi_matching_path: Optional[Union[str, Path]] = None,
+                 pipeline_version: Optional[str] = None):
         
         self.session_folder_path = Path(session_folder_path)
         self.raw_folder_path = Path(raw_folder_path)
         self.roi_matching_path = roi_matching_path
         self.project_code = project_code
+        self.pipeline_version = pipeline_version
         
         if not Path(session_folder_path).exists():
             raise FileNotFoundError(f"Path does not exist: {session_folder_path}")
@@ -141,7 +145,8 @@ class BehaviorMultiplaneOphysDataset:
                 opid = plane_folder.stem
                 self.ophys_datasets[opid] = OphysPlaneDataset(plane_folder, 
                                                               raw_folder_path=self.raw_folder_path, 
-                                                              roi_matching_path=self.roi_matching_path)
+                                                              roi_matching_path=self.roi_matching_path,
+                                                              pipeline_version=self.pipeline_version)
 
     def __getattr__(self, name):
         if hasattr(self.datasets, name):

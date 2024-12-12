@@ -1,6 +1,9 @@
 
 from pathlib import Path
 import json
+import sparse
+import h5py
+import numpy as np
 
 # set up logger
 import logging
@@ -66,8 +69,83 @@ def check_behavior_folder(path):
     return behavior_folder
 
 
+## update in aind-ohys-data-access
+def load_signals(h5_file: Path, h5_group=None, h5_key=None) -> tuple:
+    """Loads extracted signal data from aind-ophys-extraction-suite2p
+
+    Parameters
+    ----------
+    h5_file: Path
+    h5_group: str
+        Group to access key in h5 file
+    h5_key: str
+        Key to extract data from
+    
+    Returns
+    -------
+    (np.array, ImageSegmentation)
+        Trace array and updated segmentation object
+    """
+    # add warning: moved to aind-ophys-data-access, will be removed in future
+    logger.warning(f"this function (load_signals) has been moved to aind-ophys-data-access, will be removed in future")
+    if not h5_group:
+        with h5py.File(h5_file, "r") as f:
+            traces = f[h5_key][:]
+    else:
+        with h5py.File(h5_file, "r") as f:
+            traces = f[h5_group][h5_key][:]
+    index = traces.shape[0]
+
+    roi_names = np.arange(index).tolist()
+
+    return traces, roi_names
+
+
+def load_generic_group(h5_file: Path, h5_group=None, h5_key=None) -> np.array:
+
+    """Loads extracted signal data from aind-ophys-extraction-suite2p
+
+    Parameters
+    ----------
+    h5_file: Path
+        Path to h5_file
+    h5_group: str
+        Group to access key in h5 file
+    h5_key: str
+        Key to extract data from
+    
+    Returns
+    -------
+    (np.array)
+        Segmentation masks on full image
+    """
+    # add warning: moved to aind-ophys-data-access, will be removed in future
+    logger.warning(f"this function: (load_generic_group) has been moved to aind-ophys-data-access, will be removed in future")
+    print("h5", h5_file)
+    with h5py.File(h5_file, "r") as f:
+        masks = f[h5_group][h5_key][:]
+    
+    return masks
+
+
+def load_sparse_array(h5_file):
+    # add warning: moved to aind-ophys-data-access, will be removed in future
+    logger.warning(f"this function: {load_sparse_array} has been moved to aind-ophys-data-access, will be removed in future")
+    with h5py.File(h5_file) as f:
+        data = f["rois"]["data"][:]
+        coords = f["rois"]["coords"][:]
+        shape = f["rois"]["shape"][:]
+
+    pixelmasks = sparse.COO(coords,data,shape).todense()
+    return pixelmasks
+
+
 def get_sync_file_path(input_path, verbose=False):
     """Find the Sync file"""
+    
+    # add warning: moved to aind-ophys-data-access, will be removed in future
+    logger.warning(f"this function: (get_sync_file_path) has been moved to aind-ophys-data-access, will be removed in future")
+
     file_parts = {}
     input_path = Path(input_path)
     try: 
@@ -86,8 +164,22 @@ def get_sync_file_path(input_path, verbose=False):
         platform_path = find_data_file(input_path, file_parts["platform_json"])
         with open(platform_path, 'r') as f:
             platform_json = json.load(f)
+
         ophys_folder = check_ophys_folder(input_path)
-        sync_file_path = ophys_folder / platform_json['sync_file']
+        behavior_folder = input_path / "behavior"
+        
+        parent_folders = [ophys_folder, behavior_folder]
+        for f in parent_folders:
+            if f is not None:
+                try:
+                    sync_file_path = f / platform_json["sync_file"]
+                    if sync_file_path.exists():
+                        break
+                except KeyError as e:
+                    sync_file_path = None
+            else:
+                sync_file_path = None
+
 
         if not sync_file_path.exists():
             logger.error(f"Unsupported data asset structure, sync file not found in {sync_file_path}")

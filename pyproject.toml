@@ -17,6 +17,10 @@ readme = "README.md"
 dynamic = ["version"]
 
 dependencies = [
+    "numpy",
+    "pandas",
+    "sparse",
+    "h5py"
 ]
 
 [project.optional-dependencies]

@@ -3,6 +3,9 @@ from comb.processing.sync.sync_utilities import get_synchronized_frame_times
 
 from aind_ophys_data_access import metadata
 
+from . import file_handling # TODO change to data_access?
+from aind_ophys_data_access import rois
+
 from typing import Any, Optional,Union
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -47,17 +50,19 @@ class OphysPlaneDataset(OphysPlaneGrabber):
                 roi_matching_path: Optional[Union[str, Path]] = None,
                 opid: Optional[str] = None,
                 data_path: Optional[str] = None,
-                verbose=False):
+                verbose=False,
+                pipeline_version: Optional[str] = None,):
         super().__init__(plane_folder_path=plane_folder_path,
                          raw_folder_path=raw_folder_path,
                          opid=opid,
                          data_path=data_path,
                          verbose=verbose)
-
+        self.pipeline_version = pipeline_version
         self.metadata = self._set_metadata()
         
         self._add_plane_order_index()
         self._set_metadata_from_jsons()
+        
 
         # keep for legacy purposes
         self.ophys_experiment_id = self._resolve_ophys_experiment_id()
@@ -86,17 +91,50 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     ####################################################################
     
     
-    def _infer_plane_order(self):
-        processed_path = self.metadata["plane_path"].parent
-        # get names of folders in processed_path
-        plane_folders = [f for f in processed_path.iterdir() if f.is_dir()]
+    def _infer_plane_sort_index(self):
+        """The names of the plane folders, sorted, determine the order of the planes
         
-        # assert 8 folders
-        assert len(plane_folders) == 8, f"Expected 8 plane folders, found {len(plane_folders)}"
-        plane_folders = sorted(plane_folders, key=lambda x: x.name)
-        plane_folder_index_map = {plane_folder.name: i for i, plane_folder in enumerate(plane_folders)}
+        In some cases this is used for container assignment.
         
+        Returns
+        -------
+        plane_folder_index_map : dict
+        """
+        
+        if self.pipeline_version == 'v6-from_lims':
+            
+            # TODO: getting plane folders and validating can be elsehwere
+            # TODO: look up from brain areas?
+            valid_prefix = ["VISp"]
+            
+            processed_path = self.metadata["plane_path"].parent
+            plane_folders = [f for f in processed_path.iterdir() if f.is_dir()]
+            
+            assert all([f.name.split('_')[1].isdigit() for f in plane_folders]), "Plane folders are not named as expected"
+            assert all([f.name.split('_')[0] in valid_prefix for f in plane_folders]), "Plane folders are not named as expected"
+            plane_folders = sorted(plane_folders, key=lambda x: x.name)
+            plane_folder_index_map = {f.name: int(f.name.split('_')[1]) for f in plane_folders}
+
+        elif self.pipeline_version == 'v4-from_lims':
+            # generally else = v4, specifically for saffron sessions
+            
+            processed_path = self.metadata["plane_path"].parent
+            plane_folders = [f for f in processed_path.iterdir() if f.is_dir()]
+            
+            # assert 8 folders
+            assert len(plane_folders) == 8, f"Expected 8 plane folders, found {len(plane_folders)}"
+            plane_folders = sorted(plane_folders, key=lambda x: x.name)
+            plane_folder_index_map = {plane_folder.name: i for i, plane_folder in enumerate(plane_folders)}
+        
+        else:
+            raise NotImplementedError(f"Pipeline version {self.pipeline_version} not supported")
+
         return plane_folder_index_map
+    
+    
+    def _add_plane_order_index(self):
+        plane_order_map = self. _infer_plane_sort_index()
+        self.metadata['plane_order_index'] = plane_order_map[self.plane_folder_path.name]
 
     
     def _load_roi_matching_table(self):
@@ -118,7 +156,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return match_table
         
 
-
     def _resolve_ophys_experiment_id(self):
         if self.plane_folder_path is not None:
             ophys_experiment_id = self.plane_folder_path.name
@@ -139,14 +176,23 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         split_dict['plane_group_count'] = len(split_json['plane_groups'])
 
         for i, plane_group in enumerate(split_json['plane_groups']):
-            for plane_dict in plane_group['ophys_experiments']:
-                # find index of plane['experiment_id'] that matches self.opid
+            for j, plane_dict in enumerate(plane_group['ophys_experiments']):
+                if self.pipeline_version == 'v6-from_lims':
+                    # in v6 we jsut need to get the last index number (VISp_0, VISp_1, ...)
+                    plane_meso_json_index = i + j
+                    if str(plane_meso_json_index)  == self.opid.split("_")[1]:
+                        split_dict['plane_group_index'] = i
+                        split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
 
-                if str(plane_dict['experiment_id']) == self.opid:
+                elif self.pipeline_version == 'v4-from_lims':
+                    # In v4, with have the actual ophys_experiment_id in the asset and we can look 
+                    # up by that in the splitting_json
                     
-                    # split_dict['roi_index'] = plane_dict['roi_index']
-                    split_dict['plane_group_index'] = i
-                    split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
+                    if str(plane_dict['experiment_id']) == self.opid:
+                        
+                        # split_dict['roi_index'] = plane_dict['roi_index']
+                        split_dict['plane_group_index'] = i
+                        split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
 
         return split_dict
 
@@ -160,14 +206,13 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
         return frame_rate
 
-
-
     def _set_metadata(self):
         metadata = {}
         with open(self.file_paths['platform_json']) as json_file:
             platform = json.load(json_file)
 
         split_dict = self._parse_mesoscope_metadata()
+        print(split_dict)
         metadata.update(split_dict)
         
         # add plane path
@@ -191,23 +236,20 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     
     def _set_metadata_from_jsons(self):
         md = {}
-        
         json_dicts = metadata.load_metadata_json_files(self.raw_folder_path)
         
-        ophys_fovs_dict = metadata.extract_ophys_fovs(json_dicts["session"], index_key_only = True)
-        
+        index_key_only = True if self.pipeline_version == 'v4-from_lims' else False
+        ophys_fovs_dict = metadata.extract_ophys_fovs(json_dicts["session"], 
+                                                      index_key_only = index_key_only)
+
         # using the inferred plane order, grab the right plane_metadata
-        plane_order_map = self._infer_plane_order()
-        plane_order_index = plane_order_map[self.plane_folder_path.name]
-        fov_metadata = ophys_fovs_dict[plane_order_index]
-        
+        if self.pipeline_version == 'v4-from_lims':
+            plane_order_map = self._infer_plane_sort_index()
+            plane_order_index = plane_order_map[self.plane_folder_path.name]
+            fov_metadata = ophys_fovs_dict[plane_order_index]
+        elif self.pipeline_version == 'v6-from_lims':
+            fov_metadata = ophys_fovs_dict[self.plane_folder_path.name]
         self.metadata.update(fov_metadata)
-        
-        
-    
-    def _add_plane_order_index(self):
-        plane_order_map = self._infer_plane_order()
-        self.metadata['plane_order_index'] = plane_order_map[self.plane_folder_path.name]
 
     def _set_all_nan_traces_invalid(self):
         ''' Only possible when it has _cell_specimen_table as an attribute.
@@ -265,32 +307,73 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     def get_motion_transform_csv(self):
         self._motion_transform = pd.read_csv(self.file_paths['motion_transform_csv'])
         return self._motion_transform
+    
+    def roi_table_from_mask_arrays(pixel_masks: np.ndarray):
+        
+        # assert 3d
+        columns = ['mask_matrix',
+                    'height',
+                    'width',
+                    'X',
+                    'Y',
+                    'centroid',
+                    'bounding_box',
+                    'valid_roi',
+                    'exclusion_labels']
+
+        roi_table = pd.DataFrame(index=range(pixel_masks.shape[0]), columns=columns)
+        for i in range(pixel_masks.shape[0]):
+            roi_mask = pixel_masks[i]
+            roi_table.loc[i, 'mask_matrix'] = roi_mask
+        
+            # find a bounding box around roi
+            non_zero_coords = np.array(np.where(roi_mask > 0))  # Shape (2, N) where N = number of non-zero points
+
+            # Get the bounds of the bounding box
+            min_row, min_col = non_zero_coords.min(axis=1)
+            max_row, max_col = non_zero_coords.max(axis=1)
+
+            # Bounding box coordinates
+            bounding_box = (min_row, min_col, max_row, max_col)
+            height = max_row - min_row
+            width = max_col - min_col
+
+            roi_table.loc[i, 'bounding_box'] = [bounding_box]
+            roi_table.loc[i, 'height'] = height
+            roi_table.loc[i, 'width'] = width
+            roi_table.loc[i, 'X'] = min_col
+            roi_table.loc[i, 'Y'] = min_row
+            roi_table.loc[i, 'centroid'] = (min_col + width / 2, min_row + height / 2)
+            
+            # legacy attributes
+            roi_table.loc[i, 'valid_roi'] = True
+            roi_table.loc[i, 'exclusion_labels'] = None
+                
+        return roi_table
 
     # TODO: should we rename the attribute to segmentation? (MJD)
     def get_cell_specimen_table(self):
         if hasattr(self, '_cell_specimen_table') and (self._cell_specimen_table is not None):
             return self._cell_specimen_table
         else:
-            with open(self.file_paths['segmentation_output_json']) as json_file:
-                segmentation_output = json.load(json_file)
-            cell_specimen_table = pd.DataFrame(segmentation_output)
-            cell_specimen_table = cell_specimen_table.rename(columns={'id': 'cell_roi_id'})
-            cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
-            self._set_all_nan_traces_invalid()
-            self._cell_specimen_table = cell_specimen_table
-        return self._cell_specimen_table
+            pixel_masks = file_handling.load_sparse_array(self.file_paths['extraction_h5'])
+            
+            roi_table = rois.roi_table_from_mask_arrays(pixel_masks)
+            roi_table = roi_table.rename(columns={'id': 'cell_roi_id'})
+            # cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
+            # self._set_all_nan_traces_invalid()
+            
+            self._cell_specimen_table = roi_table
+            return self._cell_specimen_table
 
     def get_raw_fluorescence_traces(self):
-
-        with h5py.File(self.file_paths['roi_traces_h5'], 'r') as f:
-            traces = np.asarray(f['data'])
-            roi_ids = [int(roi_id) for roi_id in np.asarray(f['roi_names'])]
-
-        traces_df = pd.DataFrame(index=roi_ids, columns=['raw_fluorescence_traces'])
-        for i, roi_id in enumerate(roi_ids):
-            traces_df.loc[roi_id, 'raw_fluorescence_traces'] = traces[i, :]
-        traces_df = traces_df.rename(columns={'roi_id': 'cell_roi_id'})
-#        traces_df = self._add_csid_to_table(traces_df)
+        raw_traces, cell_roi_ids = file_handling.load_signals(self.file_paths['extraction_h5'], 
+                                                              h5_group="traces", h5_key="roi")
+        
+        traces_df = pd.DataFrame(index=cell_roi_ids, columns=['raw_fluorescence_traces'])
+        for i, crid in enumerate(cell_roi_ids):
+            traces_df.loc[crid, 'raw_fluorescence_traces'] = raw_traces[i, :]
+#       traces_df = self._add_csid_to_table(traces_df)
         self._raw_fluorescence_traces = traces_df
         return self._raw_fluorescence_traces
 
@@ -398,8 +481,12 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     def get_dff_traces(self):
 
         f = h5py.File(self.file_paths['dff_h5'], mode='r')
+        print(f.keys())
         dff_traces_array = np.asarray(f['data'])
-        roi_ids = [int(roi_id) for roi_id in np.asarray(f['roi_names'])]
+        #roi_ids = [int(roi_id) for roi_id in np.asarray(f['roi_names'])]
+        
+        # no ids in dff file, just use index
+        roi_ids = np.arange(dff_traces_array.shape[0]) 
         baseline = [value for value in np.asarray(f['baseline'])]
         noise = [value for value in np.asarray(f['noise'])]
         skewness = [value for value in np.asarray(f['skewness'])]
@@ -421,13 +508,17 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
         f = h5py.File(self.file_paths["events_oasis_h5"], mode='r')
         events_array = np.asarray(f['events'])
-        roi_ids = [int(roi_id) for roi_id in np.asarray(f['cell_roi_id'])]
+        
+        # just make roi_ids as for index
+        #roi_ids = [int(roi_id) for roi_id in np.asarray(f['cell_roi_id'])]
+        roi_ids = np.arange(events_array.shape[0])
 
         # convert to dataframe 
         events = pd.DataFrame(index=roi_ids, columns=['events'])
         for i, roi_id in enumerate(roi_ids):
             events.loc[roi_id, 'events'] = events_array[i, :]
-        events['filtered_events'] = events['events']
+        # just make nan as for each row
+        events['filtered_events'] = np.nan
         events.index.name = 'cell_roi_id'
         events = self._add_csid_to_table(events)
         self._events = events

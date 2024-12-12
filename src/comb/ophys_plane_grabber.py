@@ -42,15 +42,8 @@ class OphysPlaneGrabber(object):
                            "average_projection_png": "_average_projection.png",
                            "max_projection_png": "_maximum_projection.png",
                            "motion_transform_csv": "_motion_transform.csv",
-                           "segmentation_output_json": "segmentation_output.json",
-                           "roi_traces_h5": "roi_traces.h5",
-                           "neuropil_correction_h5": "neuropil_correction.h5",
-                           "neuropil_masks_json": "neuropil_masks.json",
-                           "neuropil_trace_output_json": "neuropil_trace_output.json",
-                           #"demixing_h5": "demixing_output.h5",
-                           #"demixing_json": "demixing_output.json",
+                           "extraction_h5": "_extraction.h5",
                            "dff_h5": "dff.h5",
-                           "extract_traces_json": "extract_traces.json",
                            "events_oasis_h5": "events_oasis.h5"}
 
         self.raw_file_parts = {"mesoscope_splitting_json": "MESOSCOPE_FILE_SPLITTING",
