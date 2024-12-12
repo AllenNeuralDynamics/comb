@@ -105,7 +105,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             
             # TODO: getting plane folders and validating can be elsehwere
             # TODO: look up from brain areas?
-            valid_prefix = ["VISp"]
+            valid_prefix = ["VISp", "VISl"]
             
             processed_path = self.metadata["plane_path"].parent
             plane_folders = [f for f in processed_path.iterdir() if f.is_dir()]
@@ -179,7 +179,9 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             for j, plane_dict in enumerate(plane_group['ophys_experiments']):
                 if self.pipeline_version == 'v6-from_lims':
                     # in v6 we jsut need to get the last index number (VISp_0, VISp_1, ...)
-                    plane_meso_json_index = i + j
+                    # Changing this to get from multiple regions (VISp, VISl, ...)
+                    # plane_meso_json_index = i + j  # why??
+                    plane_meso_json_index = i * 2 + j
                     if str(plane_meso_json_index)  == self.opid.split("_")[1]:
                         split_dict['plane_group_index'] = i
                         split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
