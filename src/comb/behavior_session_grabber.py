@@ -46,16 +46,31 @@ class BehaviorSessionGrabber(object):
         return found[0]
 
     def _get_pkl_file(self):
-        with open(self.file_paths['platform_json'], 'r') as f:
-            platform_json = json.load(f)
 
         behavior_path = file_handling.check_behavior_folder(self.raw_folder_path)
+        ophys_path = file_handling.check_ophys_folder(self.raw_folder_path)
+        
+        # Method 1: _stim.pkl in behavior folder
+        stim_pkl_path = next(behavior_path.glob('*_stim.pkl'), None)
+        if stim_pkl_path is not None:
+            self.file_paths["stimulus_pkl"] = Path(stim_pkl_path)
+            
+            return
+
+        # Method 2: platform json in behavior folder
+        # Note the platform json may have the wrong filename, it was changed
+        # by MPE/SIPE in 2024.
+        with open(self.file_paths['platform_json'], 'r') as f:
+            platform_json = json.load(f)
         stimulus_pkl_path = behavior_path / platform_json['stimulus_pkl']
-        if not stimulus_pkl_path.exists():
-            stimulus_pkl_path = None
+        if stimulus_pkl_path.exists():
+            self.file_paths["stimulus_pkl"] = Path(stim_pkl_path)
+            return
 
+        # Method 3: platform json in ophys folder
         if stimulus_pkl_path is None:
-            ophys_path = file_handling.check_ophys_folder(self.raw_folder_path)
             stimulus_pkl_path = ophys_path / platform_json['stimulus_pkl']
-
-        self.file_paths["stimulus_pkl"] = stimulus_pkl_path
+            self.file_paths["stimulus_pkl"] = Path(stim_pkl_path)
+            return
+        
+        raise FileNotFoundError("Could not find stimulus pkl file")
