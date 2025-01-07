@@ -28,7 +28,8 @@ def find_data_file(input_path, file_part, verbose=False):
     """
     input_path = Path(input_path)
     try:
-        file = list(input_path.glob(f'**/*{file_part}*'))[0]
+        file = list(input_path.glob(f'**/*{file_part}*'))[0] # Error-prone: what if there are multiple files with the same file_part?
+        # TODO: add a check for multiple files with the same file_part. At least pring a warning. Best is to make sure that there is only one file.
     except IndexError:
         if verbose:
             logger.warning(f"File with '{file_part}' not found in {input_path}")

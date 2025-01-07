@@ -64,13 +64,13 @@ class BehaviorSessionGrabber(object):
             platform_json = json.load(f)
         stimulus_pkl_path = behavior_path / platform_json['stimulus_pkl']
         if stimulus_pkl_path.exists():
-            self.file_paths["stimulus_pkl"] = Path(stim_pkl_path)
+            self.file_paths["stimulus_pkl"] = Path(stimulus_pkl_path)
             return
 
         # Method 3: platform json in ophys folder
         if stimulus_pkl_path is None:
             stimulus_pkl_path = ophys_path / platform_json['stimulus_pkl']
-            self.file_paths["stimulus_pkl"] = Path(stim_pkl_path)
+            self.file_paths["stimulus_pkl"] = Path(stimulus_pkl_path)
             return
         
         raise FileNotFoundError("Could not find stimulus pkl file")

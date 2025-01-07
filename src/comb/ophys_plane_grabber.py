@@ -46,7 +46,7 @@ class OphysPlaneGrabber(object):
                            "dff_h5": "dff.h5",
                            "events_oasis_h5": "events_oasis.h5"}
 
-        self.raw_file_parts = {"mesoscope_splitting_json": "MESOSCOPE_FILE_SPLITTING",
+        self.raw_file_parts = {"session_json": "session.json",
                                "platform_json": "_platform.json"}
 
         self.raw_folder_path = Path(raw_folder_path)
