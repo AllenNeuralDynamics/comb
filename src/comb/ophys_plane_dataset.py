@@ -101,14 +101,14 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         plane_folder_index_map : dict
         """
         
-        if self.pipeline_version == 'v6-from_lims':
+        if self.pipeline_version == 'v6':
             
             # TODO: getting plane folders and validating can be elsehwere
             # TODO: look up from brain areas?
-            valid_prefix = ["VISp", "VISl"]
+            valid_prefix = ["VISp", "VISl", "VISal", "VISam", "VISpm", "VISrl"]
             
             processed_path = self.metadata["plane_path"].parent
-            plane_folders = [f for f in processed_path.iterdir() if f.is_dir()]
+            plane_folders = [f for f in processed_path.iterdir() if f.is_dir() and '.nwb' not in f.name]
             
             assert all([f.name.split('_')[1].isdigit() for f in plane_folders]), "Plane folders are not named as expected"
             assert all([f.name.split('_')[0] in valid_prefix for f in plane_folders]), "Plane folders are not named as expected"
@@ -166,35 +166,28 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
 
     def _parse_mesoscope_metadata(self):
-        # assert self.file_paths['mesoscope_splitting_json'] not none
-        assert self.file_paths['mesoscope_splitting_json'] is not None, "mesoscope_splitting_json is not found, only mesoscope data is supported"
-        
+        assert self.file_paths['session_json'] is not None, "session.json is not found, only mesoscope data is supported"
+
         split_dict = {}
-        with open(self.file_paths['mesoscope_splitting_json']) as json_file:
+        with open(self.file_paths['session_json']) as json_file:
             split_json = json.load(json_file)
+        data_stream = split_json['data_streams'][0]
+        # Assign plane_group_count
+        num_groups_inferred = len(data_stream['ophys_fovs']) // 2
+        max_coupled_fov_index = np.max([int(fov['coupled_fov_index']) for fov in data_stream['ophys_fovs']])
+        assert num_groups_inferred == max_coupled_fov_index + 1, "Number of groups inferred from session.json does not match number of groups in splitting json"
+        split_dict['plane_group_count'] = num_groups_inferred
 
-        split_dict['plane_group_count'] = len(split_json['plane_groups'])
-
-        for i, plane_group in enumerate(split_json['plane_groups']):
-            for j, plane_dict in enumerate(plane_group['ophys_experiments']):
-                if self.pipeline_version == 'v6-from_lims':
-                    # in v6 we jsut need to get the last index number (VISp_0, VISp_1, ...)
-                    # Changing this to get from multiple regions (VISp, VISl, ...)
-                    #plane_meso_json_index = i * 2 + j # JK fix
-                    plane_meso_json_index = i + j # MJD approach. Which is right?
-                    if str(plane_meso_json_index)  == self.opid.split("_")[1]:
-                        split_dict['plane_group_index'] = i
-                        split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
-
-                elif self.pipeline_version == 'v4-from_lims':
-                    # In v4, with have the actual ophys_experiment_id in the asset and we can look 
-                    # up by that in the splitting_json
-                    
-                    if str(plane_dict['experiment_id']) == self.opid:
-                        
-                        # split_dict['roi_index'] = plane_dict['roi_index']
-                        split_dict['plane_group_index'] = i
-                        split_dict['split_json_scanfield_z'] = plane_dict['scanfield_z']
+        # Find the plane information from session.json by comparing with opid
+        all_plane_names = np.array([f'{fov["targeted_structure"]}_{fov["index"]}' for fov in data_stream['ophys_fovs']])
+        # Find a unique match
+        matched_inds = np.where(all_plane_names == self.opid)[0]
+        assert len(matched_inds) == 1, "Could not find a unique match for plane in session.json"
+        matched_index = matched_inds[0]
+        
+        # Assign plane_group_index (which is the same as copuled_fov_index)
+        split_dict['plane_group_index'] = data_stream['ophys_fovs'][matched_index]['coupled_fov_index']
+        split_dict['split_json_scanfield_z'] = data_stream['ophys_fovs'][matched_index]['scanfield_z']
 
         return split_dict
 
@@ -214,10 +207,8 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             platform = json.load(json_file)
 
         split_dict = self._parse_mesoscope_metadata()
-        print(split_dict)
         metadata.update(split_dict)
-        
-        # add plane path
+
         metadata['plane_path'] = self.plane_folder_path
         
         plane_folder_name = self.plane_folder_path.name
@@ -226,7 +217,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         date = session_name.split("_")[2]
         
         # for this plane set _inferred_plane_order
-        
         metadata['plane_session_key'] = f"{subject_id}_{date}_{plane_folder_name}"
         
         # TODO: should get all metadata from jsons or docdb.
@@ -249,7 +239,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             plane_order_map = self._infer_plane_sort_index()
             plane_order_index = plane_order_map[self.plane_folder_path.name]
             fov_metadata = ophys_fovs_dict[plane_order_index]
-        elif self.pipeline_version == 'v6-from_lims':
+        elif self.pipeline_version == 'v6':
             fov_metadata = ophys_fovs_dict[self.plane_folder_path.name]
         self.metadata.update(fov_metadata)
 
@@ -483,7 +473,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     def get_dff_traces(self):
 
         f = h5py.File(self.file_paths['dff_h5'], mode='r')
-        print(f.keys())
         dff_traces_array = np.asarray(f['data'])
         #roi_ids = [int(roi_id) for roi_id in np.asarray(f['roi_names'])]
         
