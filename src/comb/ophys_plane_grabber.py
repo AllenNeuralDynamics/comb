@@ -36,15 +36,15 @@ class OphysPlaneGrabber(object):
     
         # processed filepaths dict
         self.processed_file_parts = {"processing_json": "processing.json",
-                           "params_json": "_params.json",
-                           "registered_metrics_json": "_registered_metrics.json",
-                           "output_json": "_output.json",
-                           "average_projection_png": "_average_projection.png",
-                           "max_projection_png": "_maximum_projection.png",
-                           "motion_transform_csv": "_motion_transform.csv",
-                           "extraction_h5": "_extraction.h5",
-                           "dff_h5": "dff.h5",
-                           "events_oasis_h5": "events_oasis.h5"}
+                                     #"params_json": "_params.json",
+                                     #"registered_metrics_json": "_registered_metrics.json",
+                                     #"output_json": "_output.json",
+                                     "average_projection_png": "_average_projection.png",
+                                     "max_projection_png": "_maximum_projection.png",
+                                     "motion_transform_csv": "_motion_transform.csv",
+                                     "extraction_h5": "_extraction.h5",
+                                     "dff_h5": "dff.h5",
+                                     "events_oasis_h5": "events_oasis.h5"}
 
         self.raw_file_parts = {"session_json": "session.json",
                                "platform_json": "_platform.json"}

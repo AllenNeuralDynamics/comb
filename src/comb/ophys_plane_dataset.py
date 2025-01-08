@@ -207,10 +207,8 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             platform = json.load(json_file)
 
         split_dict = self._parse_mesoscope_metadata()
-        print(split_dict)
         metadata.update(split_dict)
-        
-        # add plane path
+
         metadata['plane_path'] = self.plane_folder_path
         
         plane_folder_name = self.plane_folder_path.name
@@ -219,7 +217,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         date = session_name.split("_")[2]
         
         # for this plane set _inferred_plane_order
-        
         metadata['plane_session_key'] = f"{subject_id}_{date}_{plane_folder_name}"
         
         # TODO: should get all metadata from jsons or docdb.
@@ -476,7 +473,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     def get_dff_traces(self):
 
         f = h5py.File(self.file_paths['dff_h5'], mode='r')
-        print(f.keys())
         dff_traces_array = np.asarray(f['data'])
         #roi_ids = [int(roi_id) for roi_id in np.asarray(f['roi_names'])]
         

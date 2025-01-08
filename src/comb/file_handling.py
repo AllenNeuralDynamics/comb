@@ -27,13 +27,16 @@ def find_data_file(input_path, file_part, verbose=False):
         The partial file name to search for.
     """
     input_path = Path(input_path)
-    try:
-        file = list(input_path.glob(f'**/*{file_part}*'))[0] # Error-prone: what if there are multiple files with the same file_part?
-        # TODO: add a check for multiple files with the same file_part. At least pring a warning. Best is to make sure that there is only one file.
-    except IndexError:
-        if verbose:
-            logger.warning(f"File with '{file_part}' not found in {input_path}")
+
+    file = list(input_path.glob(f'**/*{file_part}*'))
+    if len(file) > 1:
+        logger.warning(f"Multiple files found with '{file_part}' in {input_path}")
         file = None
+    elif len(file) == 0:
+        logger.warning(f"No file found with '{file_part}' in {input_path}")
+        file = None
+    elif len(file) == 1:
+        file = file[0]
     return file
 
 
@@ -120,9 +123,7 @@ def load_generic_group(h5_file: Path, h5_group=None, h5_key=None) -> np.array:
     (np.array)
         Segmentation masks on full image
     """
-    # add warning: moved to aind-ophys-data-access, will be removed in future
     logger.warning(f"this function: (load_generic_group) has been moved to aind-ophys-data-access, will be removed in future")
-    print("h5", h5_file)
     with h5py.File(h5_file, "r") as f:
         masks = f[h5_group][h5_key][:]
     
@@ -130,8 +131,7 @@ def load_generic_group(h5_file: Path, h5_group=None, h5_key=None) -> np.array:
 
 
 def load_sparse_array(h5_file):
-    # add warning: moved to aind-ophys-data-access, will be removed in future
-    logger.warning(f"this function: {load_sparse_array} has been moved to aind-ophys-data-access, will be removed in future")
+    logger.warning(f"this function: (load_sparse_array) has been moved to aind-ophys-data-access, will be removed in future")
     with h5py.File(h5_file) as f:
         data = f["rois"]["data"][:]
         coords = f["rois"]["coords"][:]
@@ -143,8 +143,6 @@ def load_sparse_array(h5_file):
 
 def get_sync_file_path(input_path, verbose=False):
     """Find the Sync file"""
-    
-    # add warning: moved to aind-ophys-data-access, will be removed in future
     logger.warning(f"this function: (get_sync_file_path) has been moved to aind-ophys-data-access, will be removed in future")
 
     file_parts = {}
