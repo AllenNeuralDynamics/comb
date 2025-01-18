@@ -4,15 +4,10 @@ from pathlib import Path
 from typing import Optional, Tuple
 import numpy as np
 import pandas as pd
-from pynwb import NWBFile, TimeSeries
-
-
 
 from comb.core import DataObject 
 from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
 from comb.data_files.eye_tracking_file import EyeTrackingFile
-
-    
 
 # metadata file ignored in COMB!  
 # from allensdk.brain_observatory.behavior.\
@@ -20,8 +15,6 @@ from comb.data_files.eye_tracking_file import EyeTrackingFile
 
 # from allensdk.brain_observatory.behavior.eye_tracking_processing import \
 #     process_eye_tracking_data
-    
-
 
 class EyeTrackingTable(DataObject):
     """corneal, eye, and pupil ellipse fit data"""
@@ -105,7 +98,6 @@ class EyeTrackingTable(DataObject):
                 frames=data_file.index.values, times=stimulus_timestamps,
                 is_metadata_frame_present=is_metadata_frame_present
             )
-            print(frames,stimulus_timestamps)
             # eye_data = data_file.data.loc[frames] # HACK no data file
             eye_data = data_file.loc[frames]
 
