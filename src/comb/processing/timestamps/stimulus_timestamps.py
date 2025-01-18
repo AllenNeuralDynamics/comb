@@ -60,7 +60,7 @@ class StimulusTimestamps(DataObject):
             timestamps=timestamps,
             monitor_delay=self._monitor_delay,
             stimulus_file=self._stimulus_file,
-            sync_file=self._sync_file
+            #sync_file=self._sync_file
         )
 
     def subtract_monitor_delay(self) -> "StimulusTimestamps":
