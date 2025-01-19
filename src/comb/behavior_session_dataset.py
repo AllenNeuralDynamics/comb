@@ -131,7 +131,6 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     
     def get_eye_tracking_table(self):
         """Load and process eye tracking data"""
-
         try:
             eye_tracking_path = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
             eye_tracking_df = EyeTrackingFile.load_data(filepath=eye_tracking_path)
@@ -146,20 +145,21 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                 timestamps=frame_times.to_numpy(),
                 monitor_delay=0.0)
             print(stimulus_timestamps)
-                
+            
             
             eye_tracking_table = EyeTrackingTable.from_data_file(data_file=eye_tracking_df, 
                                                                  stimulus_timestamps=stimulus_timestamps)
         
             logger.info("Loaded eye tracking data from: " + str(eye_tracking_path))
-        except:
-            logger.warning("Could not load eye tracking data from: " + str(eye_tracking_path))
+        except Exception as e:
+            
+            logger.error("Could not load eye tracking data from: " + str(eye_tracking_path), exc_info=True)
             eye_tracking_table = None
 
         self._eye_tracking_table = eye_tracking_table
     
         return self._eye_tracking_table
-    eye_tracking = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
+    eye_tracking_table = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
 
     def get_stimulus_presentations(self, monitor_delay=0.03613):
         """"TODO"""
