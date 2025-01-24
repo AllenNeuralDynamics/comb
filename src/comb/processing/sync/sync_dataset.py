@@ -149,7 +149,7 @@ class SyncDataset(object):
 
         """
         self.dfile = h5.File(
-            path, 'r')  # MG edit 3/15 removed 'r' because some sync files were unable to load  # NOQA E501
+            path, 'r')  # this needs to be closed at some point?? JK 01/24/2025
         self.meta_data = eval(self.dfile['meta'][()])
         self.line_labels = self.meta_data['line_labels']
         self.times = self._process_times()
