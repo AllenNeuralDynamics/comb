@@ -13,6 +13,8 @@ from comb.processing.stimulus.presentations import Presentations
 from comb.processing.biometrics.rewards import Rewards
 
 import comb.processing.eye_tracking as eye_tracking
+from comb.processing.eye_tracking_table import EyeTrackingTable
+from comb.data_files.eye_tracking_file import EyeTrackingFile
 
 from . import data_file_keys
 
@@ -27,6 +29,9 @@ import xarray as xr
 from pathlib import Path
 
 from pathlib import Path
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class LazyLoadable(object):
@@ -105,22 +110,56 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
     #     return self._stimulus_presentations
 
+    # def get_eye_tracking_table_old(self):
+    #     """Load and process eye tracking data,
+    #     this is an old method; just directly load the table, without adding timestamps"""
+
+    #     try:
+    #         eye_tracking_file = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
+    #         eye_tracking_table = eye_tracking.load_eye_tracking_hdf(eye_tracking_file)
+
+    #         # todo: maybe create additional processing (handle metadata frame + stimulus timestamps)
+    #         #processed_eye_tracking_data = process_eye_tracking_data(eye_tracking_data)
+    #     except:
+    #         eye_tracking_table = None
+
+    #     self._eye_tracking_table = eye_tracking_table
+    
+    #     return self._eye_tracking_table
+    # eye_tracking = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
+    
+    
     def get_eye_tracking_table(self):
         """Load and process eye tracking data"""
-
         try:
-            eye_tracking_file = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
-            eye_tracking_table = eye_tracking.load_eye_tracking_hdf(eye_tracking_file)
-
-            # todo: maybe create additional processing (handle metadata frame + stimulus timestamps)
-            #processed_eye_tracking_data = process_eye_tracking_data(eye_tracking_data)
-        except:
+            eye_tracking_path = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
+            eye_tracking_df = EyeTrackingFile.load_data(filepath=eye_tracking_path)
+            
+            frame_times = sync_utilities.get_synchronized_frame_times(
+                session_sync_file=self.file_paths['sync_file'],
+                sync_line_label_keys=data_file_keys.EYE_TRACKING_KEYS,
+                drop_frames=None,
+                trim_after_spike=False)
+            
+            stimulus_timestamps = StimulusTimestamps(
+                timestamps=frame_times.to_numpy(),
+                monitor_delay=0.0)
+            print(stimulus_timestamps)
+            
+            
+            eye_tracking_table = EyeTrackingTable.from_data_file(data_file=eye_tracking_df, 
+                                                                 stimulus_timestamps=stimulus_timestamps)
+        
+            logger.info("Loaded eye tracking data from: " + str(eye_tracking_path))
+        except Exception as e:
+            
+            logger.error("Could not load eye tracking data from: " + str(eye_tracking_path), exc_info=True)
             eye_tracking_table = None
 
         self._eye_tracking_table = eye_tracking_table
     
         return self._eye_tracking_table
-    eye_tracking = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
+    eye_tracking_table = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
 
     def get_stimulus_presentations(self, monitor_delay=0.03613):
         """"TODO"""

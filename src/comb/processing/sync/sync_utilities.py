@@ -83,6 +83,8 @@ def get_synchronized_frame_times(session_sync_file: Path,
     times = sync_dataset.get_edges(
         "rising", sync_line_label_keys, units="seconds"
     )
+    
+    sync_dataset.close() # 01/24/2025 JK
 
     times = trim_discontiguous_times(times) if trim_after_spike else times
     if drop_frames is not None:
