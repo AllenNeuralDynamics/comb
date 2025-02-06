@@ -86,6 +86,8 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         
         self.metadata = None
         # TODO metadata
+        
+        self.trials = self.get_trials()
 
     def _load_behavior_stimulus_file(self):
         # load file when BehaviorDataset is instantiated
@@ -291,7 +293,6 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     stimulus_timestamps = LazyLoadable('_stimulus_timestamps', get_stimulus_timestamps)
 
     
-    @classmethod
     def _read_trials(
             self,
             # stimulus_file_lookup: StimulusFileLookup,
@@ -304,12 +305,15 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         Construct the Trials data object for this session
         """
         behavior_stimulus_file = self.behavior_stimulus_file
-        stimulus_timestamps = self._stimulus_timestamps
+        st = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file, 
+                                                   monitor_delay=self.monitor_delay)
+        licks = self.get_licks().copy()
+        rewards = self.get_rewards()
         return TrialTable.from_stimulus_file(
             stimulus_file=behavior_stimulus_file,
-            stimulus_timestamps=stimulus_timestamps,
-            licks=self._licks,
-            rewards=self._rewards)
+            stimulus_timestamps=st,
+            licks=licks,
+            rewards=rewards)
 
     # @classmethod
     # def _read_behavior_stimulus_timestamps(

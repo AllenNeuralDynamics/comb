@@ -22,6 +22,8 @@ from comb.processing.biometrics.rewards import Rewards
 from comb.processing.trials.trials import Trial
 
 
+
+
 # class TrialTable(DataObject, StimulusFileReadableInterface,
 #                  NwbReadableInterface, NwbWritableInterface):
 class TrialTable(DataObject):

@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Tuple, Optional, Union
 
 import numpy as np
 
-# from comb import one
+from comb import one
 from comb.processing.sync.sync_file import SyncFile
 from comb.data_files import BehaviorStimulusFile
 from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
@@ -67,9 +67,11 @@ class Trial:
         }
 
         tr_data = {"trial": self._trial["index"]}
-        lick_frames = licks.value['frame'].values
+        # lick_frames = licks.value['frame'].values
+        lick_frames = licks['frame'].values
         timestamps = stimulus_timestamps.value
-        reward_times = rewards.value['timestamps'].values
+        # reward_times = rewards.value['timestamps'].values
+        reward_times = rewards['timestamps'].values
 
         # this block of code is trying to mimic
         # https://github.com/AllenInstitute/visual_behavior_analysis
