@@ -2,12 +2,35 @@ from typing import List, Dict, Any, Tuple, Optional, Union
 
 import numpy as np
 
-from comb import one
+# from comb import one
+def one(x):
+    if isinstance(x, str):
+        return x
+    try:
+        xlen = len(x)
+    except TypeError:
+        return x
+    if xlen != 1:
+        raise OneResultExpectedError("Expected length one result, received: "
+                                     f"{x} results from query")
+    if isinstance(x, set):
+        return list(x)[0]
+    else:
+        return x[0]
+
+class OneResultExpectedError(RuntimeError):
+    pass
+# putting def one(x) in comb.__init__.py errors the following
+# from comb.behavior_ophys_dataset import BehaviorOphysDataset
+
 from comb.processing.sync.sync_file import SyncFile
 from comb.data_files import BehaviorStimulusFile
 from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
 from comb.processing.biometrics.licks import Licks
 from comb.processing.biometrics.rewards import Rewards
+
+
+
 
 
 class Trial:
