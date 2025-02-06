@@ -285,7 +285,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
 
     def get_trials(self):
-        return self._read_trials()
+        return self._read_trials().value
     trials = LazyLoadable('_trials', get_trials)
 
     # lazy load
