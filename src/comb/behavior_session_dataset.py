@@ -5,12 +5,13 @@ from comb.processing.biometrics import running_processing
 from comb.processing.sync import sync_utilities
 from comb.processing.sync import time_sync
 from comb.processing.biometrics.licks import Licks
+from comb.processing.biometrics.rewards import Rewards
 
+from comb.processing.trials.trial_table import TrialTable
 from comb.data_files.behavior_stimulus_file import BehaviorStimulusFile
-
 from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
 from comb.processing.stimulus.presentations import Presentations
-from comb.processing.biometrics.rewards import Rewards
+from comb.processing.sync.sync_file import SyncFile
 
 import comb.processing.eye_tracking as eye_tracking
 from comb.processing.eye_tracking_table import EyeTrackingTable
@@ -28,7 +29,6 @@ import numpy as np
 import xarray as xr
 from pathlib import Path
 
-from pathlib import Path
 
 import logging
 logger = logging.getLogger(__name__)
@@ -282,14 +282,34 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     # task_parameters = LazyLoadable('_task_parameters', get_task_parameters)
 
 
-    # def get_trials(self):
-        #   self._trials = 
-    #     return self._trials
-    # trials = LazyLoadable('_trials', get_trials)
+    def get_trials(self):
+        return self._read_trials()
+    trials = LazyLoadable('_trials', get_trials)
 
     # lazy load
     stimulus_presentations = LazyLoadable('_stimulus_presentations', get_stimulus_presentations)
     stimulus_timestamps = LazyLoadable('_stimulus_timestamps', get_stimulus_timestamps)
+
+    
+    @classmethod
+    def _read_trials(
+            self,
+            # stimulus_file_lookup: StimulusFileLookup,
+            # sync_file: Optional[SyncFile],
+            # monitor_delay: float,
+            # licks: Licks,
+            # rewards: Rewards) -> TrialTable:
+            ) -> TrialTable:
+        """
+        Construct the Trials data object for this session
+        """
+        behavior_stimulus_file = self.behavior_stimulus_file
+        stimulus_timestamps = self._stimulus_timestamps
+        return TrialTable.from_stimulus_file(
+            stimulus_file=behavior_stimulus_file,
+            stimulus_timestamps=stimulus_timestamps,
+            licks=self._licks,
+            rewards=self._rewards)
 
     # @classmethod
     # def _read_behavior_stimulus_timestamps(

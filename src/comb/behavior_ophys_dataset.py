@@ -48,16 +48,17 @@ class BehaviorOphysDataset:
 
         self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,
                                                      raw_folder_path=raw_folder_path,
-                                                     roi_matching_path=roi_matching_path, verbose=verbose,
+                                                     roi_matching_path=roi_matching_path,
+                                                     verbose=verbose,
                                                      pipeline_version=pipeline_version)
-        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path, 
-                                                       project_code=project_code, 
+        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path,
+                                                       project_code=project_code,
                                                        eye_tracking_path=eye_tracking_path)
-        
+
         self.metadata = self._session_metadata()
-    
+
+
     def _session_metadata(self):
-        
         jsons_dict = metadata.load_metadata_json_files(self.raw_folder_path)
         metadata_dict = metadata.metadata_for_multiplane_session(jsons_dict)
 
@@ -181,12 +182,14 @@ class BehaviorMultiplaneOphysDataset:
 
         traces_list = []
         roi_names_list = []
-
+        traces_keys = ['dff', 'events']
         if traces_key == "dff":
             attrb_key = "dff_traces"
         elif traces_key == "events" or traces_key == "filtered_events":
             attrb_key = "events"
-        # TODO: nueropil, raw, corrected etc.
+        else:
+            raise ValueError(f'""traces_key"" should be one of {traces_keys}, but {traces_key} was given.')
+        # TODO: denoised, nueropil, raw, corrected etc.
 
         for opid, dataset in self.ophys_datasets.items():
             try: 

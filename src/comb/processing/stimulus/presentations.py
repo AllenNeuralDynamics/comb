@@ -16,7 +16,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from comb.processing.trials.trials import Trials
+from comb.processing.trials.trials import Trial
 from comb.core import DataObject
 from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
 from comb.data_files.behavior_stimulus_file import BehaviorStimulusFile
@@ -49,7 +49,7 @@ class Presentations(DataObject):
         columns_to_rename: Optional[Dict[str, str]] = None,
         column_list: Optional[List[str]] = None,
         sort_columns: bool = True,
-        trials: Optional[Trials] = None,
+        trials: Optional[Trial] = None,
     ):
         """
 
@@ -136,7 +136,7 @@ class Presentations(DataObject):
         stimulus_file: BehaviorStimulusFile,
         stimulus_timestamps: StimulusTimestamps,
         # behavior_session_id: int, # use project_code instead MJD 07/23/2024
-        trials: Optional[Trials] = None,
+        trials: Optional[Trial] = None,
         limit_to_images: Optional[List] = None,
         column_list: Optional[List[str]] = None,
         fill_omitted_values: bool = True,
@@ -154,7 +154,7 @@ class Presentations(DataObject):
             Timestamps of the stimuli
         behavior_session_id : int
             LIMS id of behavior session
-        trials: Trials
+        trials: Trial
             Object to create trials_id column in Presentations table
             allowing for mering of the two tables.
         limit_to_images : Optional, list of str
@@ -312,7 +312,7 @@ class Presentations(DataObject):
         exclude_columns: Optional[List[str]] = None,
         columns_to_rename: Optional[Dict[str, str]] = None,
         sort_columns: bool = True,
-        trials: Optional[Trials] = None,
+        trials: Optional[Trial] = None,
     ) -> "Presentations":
         """
         Reads the table directly from a precomputed csv
