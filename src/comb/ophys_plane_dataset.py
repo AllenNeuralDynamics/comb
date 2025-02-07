@@ -6,6 +6,8 @@ from aind_ophys_data_access import metadata
 from . import file_handling # TODO change to data_access?
 from aind_ophys_data_access import rois
 
+from lamf_analysis import utils as lamf_utils # for motion border
+
 from typing import Any, Optional,Union
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -51,7 +53,8 @@ class OphysPlaneDataset(OphysPlaneGrabber):
                 opid: Optional[str] = None,
                 data_path: Optional[str] = None,
                 verbose=False,
-                pipeline_version: Optional[str] = None,):
+                pipeline_version: Optional[str] = None,
+                apply_patch: Optional[bool] = True):
         super().__init__(plane_folder_path=plane_folder_path,
                          raw_folder_path=raw_folder_path,
                          opid=opid,
@@ -85,6 +88,10 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             self.file_paths['roi_matching_table'] = roi_matching_path
             self.roi_matching_table = self._load_roi_matching_table()
 
+        # Patch some of the issues, until they are resolved.
+        # 1. ROI filtering - will be done by ROICat
+        if apply_patch:
+            self._patch_attributes()
 
     ####################################################################
     # Data files
@@ -550,7 +557,6 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
 
 
-
     @classmethod
     def construct_and_load(cls, ophys_plane_id, cache_dir=None, **kwargs):
         ''' Instantiate a VisualBehaviorOphysDataset and load its data
@@ -598,3 +604,51 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         # obj.get_extended_stimulus_presentations()
 
         return obj
+
+
+
+# Patches
+    def _patch_attributes(self):
+        # Patch 1: ROI filtering
+        self._filter_rois()
+        pass
+
+    def _filter_rois(self, small_roi_radius_threshold_in_um=4):
+        ''' Filter ROIs based on size and motion border
+
+        Parameters
+        ----------
+        small_roi_radius_threshold_in_um : float
+            threshold for filtering small ROIs
+
+        '''
+        cell_specimen_table = self.cell_specimen_table
+        if np.array([k in cell_specimen_table.columns for k in ['touching_motion_border', 'small_roi', 'valid_roi']]).all():
+            pass
+        else:
+            plane_path = self.metadata['plane_path']
+            range_y, range_x = lamf_utils.get_motion_correction_crop_xy_range(plane_path)
+            range_y = [int(range_y[0]), -int(range_y[1])]
+            range_x = [int(range_x[0]), -int(range_x[1])]
+            
+            on_mask = np.zeros((self.metadata['fov_height'], self.metadata['fov_width']), dtype=bool)
+            on_mask[range_y[0]:range_y[1], range_x[0]:range_x[1]] = True
+            motion_mask = ~on_mask
+
+            def _touching_motion_border(row, motion_mask):
+                if (row.mask_matrix * motion_mask).any():
+                    return True
+                else:
+                    return False
+
+            cell_specimen_table['touching_motion_border'] = cell_specimen_table.apply(_touching_motion_border, axis=1, motion_mask=motion_mask)
+            
+            small_roi_radius_threshold_in_pix = small_roi_radius_threshold_in_um / float(self.metadata['fov_scale_factor'])
+            area_threshold = np.pi * (small_roi_radius_threshold_in_pix**2)
+            
+            cell_specimen_table['small_roi'] = cell_specimen_table['mask_matrix'].apply(lambda x: len(np.where(x)[0]) < area_threshold)
+            cell_specimen_table['valid_roi'] = ~cell_specimen_table['touching_motion_border'] & ~cell_specimen_table['small_roi']
+    
+
+    
+        

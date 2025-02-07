@@ -67,7 +67,8 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                  data_path: Optional[str] = None,
                  monitor_delay: float = 0.0,
                  eye_tracking_path: Optional[Union[str, Path]] = None,
-                 project_code: Optional[str] = None):
+                 project_code: Optional[str] = None,
+                 apply_patch: Optional[bool] = True):
         super().__init__(raw_folder_path=raw_folder_path,
                          oeid=oeid,
                          data_path=data_path)
@@ -86,6 +87,9 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         
         self.metadata = None
         # TODO metadata
+
+        if apply_patch:
+            self._patch_attributes()
 
     def _load_behavior_stimulus_file(self):
         # load file when BehaviorDataset is instantiated
@@ -424,3 +428,42 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #         task_parameters,
     #         trials,
     #     )
+
+
+    # Patches
+    def _patch_attributes(self):
+        # Patch 1: Add trials information
+        self._add_trials_info()
+        pass
+    
+    def _add_trials_info(self, response_window=(0.15, 0.75)):
+        """ Temporary fix to add trials to bod
+        using stimulus_presentations and licks.
+        No correct rejection for this.
+        Columns: 'change_time', 'hit', 'miss'
+
+        Parameters
+        ----------
+        bod : BehaviorOphysDataset
+            The behavior ophys dataset object.
+
+        Returns
+        -------
+        bod : BehaviorOphysDataset
+            The behavior ophys dataset object with trials.
+        """
+
+        stimulus_presentations = self.stimulus_presentations
+        lick_times = self.licks.timestamps.values
+        trials = pd.DataFrame(columns=['change_time', 'hit', 'miss'])
+
+        change_times = stimulus_presentations.query('is_change').start_time.values
+        response_windows = np.array([change_times + response_window[0], change_times + response_window[1]]).T
+        hit = np.zeros(len(change_times), 'bool')
+        for i, window in enumerate(response_windows):
+            if np.any((lick_times > window[0]) & (lick_times < window[1])):
+                hit[i] = 1
+        miss = ~hit
+        trials = pd.DataFrame({'change_time': change_times, 'hit': hit, 'miss': miss})
+
+        self.trials = trials
