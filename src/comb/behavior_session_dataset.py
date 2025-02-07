@@ -160,8 +160,11 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         
             logger.info("Loaded eye tracking data from: " + str(eye_tracking_path))
         except Exception as e:
-            
-            logger.error("Could not load eye tracking data from: " + str(eye_tracking_path), exc_info=True)
+            if 'eye_tracking' not in self.file_paths.keys():
+                logger.error("eye_tracking not defined as a file_path", exc_info=True)
+            else:
+                eye_tracking_path = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
+                logger.error("Could not load eye tracking data from: " + str(eye_tracking_path), exc_info=True)
             eye_tracking_table = None
 
         self._eye_tracking_table = eye_tracking_table
