@@ -474,7 +474,7 @@ class Presentations(DataObject):
                                stimulus_block: Optional[int]):
             if stimulus_block is not None:
                 first_row = input_df[
-                    input_df['stimulus_block'] == stim_block].iloc[0]
+                    input_df['stimulus_block'] == stimulus_block].iloc[0]
             else:
                 first_row = input_df.iloc[0]
 

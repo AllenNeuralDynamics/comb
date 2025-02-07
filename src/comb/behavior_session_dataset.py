@@ -444,7 +444,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         self._add_trials_info()
         # Patch 2: Remove pupil area outliers
         self._remove_pupil_area_outliers()
-        pass
+
     
     def _add_trials_info(self, response_window=(0.15, 0.75)):
         """ Temporary fix to add trials to bod
