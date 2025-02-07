@@ -26,6 +26,7 @@ import os
 import h5py
 import numpy as np
 import xarray as xr
+from scipy import ndimage
 from pathlib import Path
 
 from pathlib import Path
@@ -88,6 +89,9 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         self.metadata = None
         # TODO metadata
 
+        # Patch some of the issues, until they are resolved.
+        # 1. Adding trials information - dev on the way
+        # 2. Remove pupil area outliers - issue documented. Need to resolve from ellipse calculation (pupil dlc capsule)
         if apply_patch:
             self._patch_attributes()
 
@@ -434,6 +438,8 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     def _patch_attributes(self):
         # Patch 1: Add trials information
         self._add_trials_info()
+        # Patch 2: Remove pupil area outliers
+        self._remove_pupil_area_outliers()
         pass
     
     def _add_trials_info(self, response_window=(0.15, 0.75)):
@@ -467,3 +473,31 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         trials = pd.DataFrame({'change_time': change_times, 'hit': hit, 'miss': miss})
 
         self.trials = trials
+    
+
+    def _remove_pupil_area_outliers(self, tick_threshold=None,
+                                    tick_std_multiplier_threshold=20,
+                                    dilation_frames: int = 2):
+        """
+        Remove pupil area outliers from eye_tracking_table.
+            Remove frames that change more than tick_treshold values or more than tick_std_multiplier_threshold stds
+            If both are None, no frames are removed.
+            If both are not None, tick_threshold is used.
+            All threshold is on the absolute frame-to-frame difference.
+        Filtering is based on pupil area only.
+        Results applied to all.
+        """
+        eye_df = self.eye_tracking_table
+
+        if tick_threshold is None:
+            if tick_std_multiplier_threshold is not None:
+                tick_threshold = tick_std_multiplier_threshold * eye_df['pupil_area'].diff().abs().std()
+        
+        if tick_threshold is not None:
+            outlier_mask = eye_df.pupil_area.diff().abs().fillna(0) > tick_threshold
+            if dilation_frames > 0:
+                outlier_mask = ndimage.binary_dilation(outlier_mask,
+                                                    iterations=dilation_frames)
+        eye_df = eye_df[~outlier_mask]
+        self.eye_tracking_table = eye_df
+
