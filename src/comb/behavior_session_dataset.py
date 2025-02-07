@@ -69,11 +69,13 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                  monitor_delay: float = 0.0,
                  eye_tracking_path: Optional[Union[str, Path]] = None,
                  project_code: Optional[str] = None,
+                 verbose: Optional[bool] = False,
                  apply_patch: Optional[bool] = True):
         super().__init__(raw_folder_path=raw_folder_path,
                          oeid=oeid,
                          data_path=data_path)
 
+        self.verbose = verbose
         self._load_behavior_stimulus_file()
         self.monitor_delay = monitor_delay # TODO: UPDATE
         self.project_code = project_code
@@ -139,6 +141,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     
     def get_eye_tracking_table(self):
         """Load and process eye tracking data"""
+        verbose = self.verbose
         try:
             eye_tracking_path = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
             eye_tracking_df = EyeTrackingFile.load_data(filepath=eye_tracking_path)
@@ -152,14 +155,12 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
             stimulus_timestamps = StimulusTimestamps(
                 timestamps=frame_times.to_numpy(),
                 monitor_delay=0.0)
-            print(stimulus_timestamps)
-            
             
             eye_tracking_table = EyeTrackingTable.from_data_file(data_file=eye_tracking_df, 
                                                                  stimulus_timestamps=stimulus_timestamps)
-        
-            logger.info("Loaded eye tracking data from: " + str(eye_tracking_path))
-        except Exception as e:
+            if verbose:
+                logger.info("Loaded eye tracking data from: " + str(eye_tracking_path))
+        except Exception as e:            
             if 'eye_tracking' not in self.file_paths.keys():
                 logger.error("eye_tracking not defined as a file_path", exc_info=True)
             else:
@@ -466,6 +467,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         lick_times = self.licks.timestamps.values
         trials = pd.DataFrame(columns=['change_time', 'hit', 'miss'])
 
+        stimulus_presentations['is_change'] = stimulus_presentations['is_change'].astype('boolean').fillna(False).astype(bool)
         change_times = stimulus_presentations.query('is_change').start_time.values
         response_windows = np.array([change_times + response_window[0], change_times + response_window[1]]).T
         hit = np.zeros(len(change_times), 'bool')

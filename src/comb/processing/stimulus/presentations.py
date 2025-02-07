@@ -511,7 +511,7 @@ class Presentations(DataObject):
         omitted_time_duration
             Amount of time a stimulus is omitted for in seconds
         """
-        omitted = df["omitted"].fillna(False)
+        omitted = df["omitted"].astype('boolean').fillna(False).astype(bool)
         df.loc[omitted, "stop_time"] = (
             df.loc[omitted, "start_time"] + omitted_time_duration
         )

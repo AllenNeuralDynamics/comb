@@ -30,10 +30,12 @@ def find_data_file(input_path, file_part, verbose=False):
 
     file = list(input_path.glob(f'**/*{file_part}*'))
     if len(file) > 1:
-        logger.warning(f"Multiple files found with '{file_part}' in {input_path}")
+        if verbose:
+            logger.warning(f"Multiple files found with '{file_part}' in {input_path}")
         file = None
     elif len(file) == 0:
-        logger.warning(f"No file found with '{file_part}' in {input_path}")
+        if verbose:
+            logger.warning(f"No file found with '{file_part}' in {input_path}")
         file = None
     elif len(file) == 1:
         file = file[0]
@@ -74,7 +76,7 @@ def check_behavior_folder(path):
 
 
 ## update in aind-ohys-data-access
-def load_signals(h5_file: Path, h5_group=None, h5_key=None) -> tuple:
+def load_signals(h5_file: Path, h5_group=None, h5_key=None, verbose=False) -> tuple:
     """Loads extracted signal data from aind-ophys-extraction-suite2p
 
     Parameters
@@ -91,7 +93,8 @@ def load_signals(h5_file: Path, h5_group=None, h5_key=None) -> tuple:
         Trace array and updated segmentation object
     """
     # add warning: moved to aind-ophys-data-access, will be removed in future
-    logger.warning(f"this function (load_signals) has been moved to aind-ophys-data-access, will be removed in future")
+    if verbose:
+        logger.warning(f"this function (load_signals) has been moved to aind-ophys-data-access, will be removed in future")
     if not h5_group:
         with h5py.File(h5_file, "r") as f:
             traces = f[h5_key][:]
@@ -105,7 +108,7 @@ def load_signals(h5_file: Path, h5_group=None, h5_key=None) -> tuple:
     return traces, roi_names
 
 
-def load_generic_group(h5_file: Path, h5_group=None, h5_key=None) -> np.array:
+def load_generic_group(h5_file: Path, h5_group=None, h5_key=None, verbose=False) -> np.array:
 
     """Loads extracted signal data from aind-ophys-extraction-suite2p
 
@@ -123,15 +126,17 @@ def load_generic_group(h5_file: Path, h5_group=None, h5_key=None) -> np.array:
     (np.array)
         Segmentation masks on full image
     """
-    logger.warning(f"this function: (load_generic_group) has been moved to aind-ophys-data-access, will be removed in future")
+    if verbose:
+        logger.warning(f"this function: (load_generic_group) has been moved to aind-ophys-data-access, will be removed in future")
     with h5py.File(h5_file, "r") as f:
         masks = f[h5_group][h5_key][:]
     
     return masks
 
 
-def load_sparse_array(h5_file):
-    logger.warning(f"this function: (load_sparse_array) has been moved to aind-ophys-data-access, will be removed in future")
+def load_sparse_array(h5_file, verbose=False):
+    if verbose:
+        logger.warning(f"this function: (load_sparse_array) has been moved to aind-ophys-data-access, will be removed in future")
     with h5py.File(h5_file) as f:
         data = f["rois"]["data"][:]
         coords = f["rois"]["coords"][:]
@@ -142,8 +147,10 @@ def load_sparse_array(h5_file):
 
 
 def get_sync_file_path(input_path, verbose=False):
+    
     """Find the Sync file"""
-    logger.warning(f"this function: (get_sync_file_path) has been moved to aind-ophys-data-access, will be removed in future")
+    if verbose:
+        logger.warning(f"this function: (get_sync_file_path) has been moved to aind-ophys-data-access, will be removed in future")
 
     file_parts = {}
     input_path = Path(input_path)
@@ -158,7 +165,8 @@ def get_sync_file_path(input_path, verbose=False):
     if sync_file_path is None:
         # method 2: load platform json
         # Note: sometimes fails if platform json has incorrect sync_file path
-        logging.info(f"Trying to find sync file using platform json for {input_path}")
+        if verbose:
+            logging.info(f"Trying to find sync file using platform json for {input_path}")
         file_parts = {"platform_json": "_platform.json"}
         platform_path = find_data_file(input_path, file_parts["platform_json"])
         with open(platform_path, 'r') as f:
@@ -181,10 +189,12 @@ def get_sync_file_path(input_path, verbose=False):
 
 
         if not sync_file_path.exists():
-            logger.error(f"Unsupported data asset structure, sync file not found in {sync_file_path}")
+            if verbose:
+                logger.error(f"Unsupported data asset structure, sync file not found in {sync_file_path}")
             sync_file_path = None
         else:
-            logger.info(f"Sync file found in {sync_file_path}")
+            if verbose:
+                logger.info(f"Sync file found in {sync_file_path}")
 
     return sync_file_path
 

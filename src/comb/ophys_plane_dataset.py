@@ -52,7 +52,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
                 roi_matching_path: Optional[Union[str, Path]] = None,
                 opid: Optional[str] = None,
                 data_path: Optional[str] = None,
-                verbose=False,
+                verbose: Optional[bool] = False,
                 pipeline_version: Optional[str] = None,
                 apply_patch: Optional[bool] = True):
         super().__init__(plane_folder_path=plane_folder_path,
