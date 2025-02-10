@@ -482,14 +482,16 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
     def _remove_pupil_area_outliers(self, tick_threshold=None,
                                     tick_std_multiplier_threshold=20,
-                                    dilation_frames: int = 2):
+                                    dilation_frames: int = 2,
+                                    pupil_average_confidence_threshold: float = 0.65):
         """
         Remove pupil area outliers from eye_tracking_table.
             Remove frames that change more than tick_treshold values or more than tick_std_multiplier_threshold stds
             If both are None, no frames are removed.
             If both are not None, tick_threshold is used.
             All threshold is on the absolute frame-to-frame difference.
-        Filtering is based on pupil area only.
+            Filtering is based on pupil area only.
+        Also add a mask for low confidence frames (average likelihood of pupil points).
         Results applied to all.
         """
         eye_df = self.eye_tracking_table
@@ -498,11 +500,20 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
             if tick_std_multiplier_threshold is not None:
                 tick_threshold = tick_std_multiplier_threshold * eye_df['pupil_area'].diff().abs().std()
         
+        outlier_mask = np.zeros(len(eye_df), 'bool')
         if tick_threshold is not None:
+            # Get pupil area change rate outlier mask
             outlier_mask = eye_df.pupil_area.diff().abs().fillna(0) > tick_threshold
-            if dilation_frames > 0:
-                outlier_mask = ndimage.binary_dilation(outlier_mask,
+
+        if pupil_average_confidence_threshold is not None:
+            # Add low confidence mask
+            low_confidence_mask = eye_df['pupil_average_confidence'].values < pupil_average_confidence_threshold
+            outlier_mask = outlier_mask | low_confidence_mask
+
+        if dilation_frames > 0:
+            outlier_mask = ndimage.binary_dilation(outlier_mask,
                                                     iterations=dilation_frames)
+    
         eye_df = eye_df[~outlier_mask]
         self.eye_tracking_table = eye_df
 
