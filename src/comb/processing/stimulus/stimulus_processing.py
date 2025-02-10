@@ -799,7 +799,7 @@ def is_change_event(stimulus_presentations: pd.DataFrame) -> pd.Series:
         .rename('is_change')
 
     # Excluded stimuli are not change events
-    is_change = is_change.fillna(False)
+    is_change = is_change.astype('boolean').fillna(False).astype(bool)
 
     return is_change
 

@@ -33,7 +33,9 @@ def load_eye_tracking_hdf(eye_tracking_file: Path) -> pd.DataFrame:
 
     eye_tracking_dfs = []
     for field_name in eye_tracking_fields:
-        field_data = pd.read_hdf(eye_tracking_file, key=field_name)
+        with pd.HDFStore(eye_tracking_file, 'r') as store:
+            field_data = store.get(field_name).copy()
+        # field_data = pd.read_hdf(eye_tracking_file, key=field_name)
 
         # new aind-capsule outputs some columsn with names already
         rename_cols = [col for col in field_data.columns if not col.startswith(field_name)]
