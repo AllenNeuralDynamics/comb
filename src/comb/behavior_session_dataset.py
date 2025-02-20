@@ -490,6 +490,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         if aspect_ratio_threshold > 1:
             aspect_ratio_threshold = 1 / aspect_ratio_threshold
         eye_df = self.eye_tracking_table
+        eye_df['pupil_aspect_ratio'] = eye_df['pupil_width'] / eye_df['pupil_height']
 
         if pupil_average_confidence_threshold is not None:
             # Add low confidence mask
