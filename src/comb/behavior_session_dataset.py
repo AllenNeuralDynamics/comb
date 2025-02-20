@@ -443,7 +443,8 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         # Patch 1: Add trials information
         self._add_trials_info()
         # Patch 2: Remove pupil area outliers
-        self._remove_pupil_area_outliers()
+        self._filter_pupil_data()
+        # self._remove_pupil_area_outliers()
 
     
     def _add_trials_info(self, response_window=(0.15, 0.75)):
@@ -479,6 +480,27 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         self.trials = trials
     
+
+    def _filter_pupil_data(self,
+                            aspect_ratio_threshold: float = 0.6,
+                            pupil_average_confidence_threshold: float = 0.7,):
+        ''' Filter pupil data based on mean confidence and aspect ratio.
+        Temporary fix until new pupil tracking is in place.
+        '''
+        if aspect_ratio_threshold > 1:
+            aspect_ratio_threshold = 1 / aspect_ratio_threshold
+        eye_df = self.eye_tracking_table
+
+        if pupil_average_confidence_threshold is not None:
+            # Add low confidence mask
+            high_confidence_mask = eye_df['pupil_average_confidence'].values >= pupil_average_confidence_threshold
+        if aspect_ratio_threshold is not None:
+            # Add aspect ratio mask
+            aspect_ratio_mask = (eye_df['pupil_aspect_ratio'].values >= aspect_ratio_threshold) & \
+                (eye_df['pupil_aspect_ratio'].values <= 1/aspect_ratio_threshold)
+        eye_df = eye_df[high_confidence_mask & aspect_ratio_mask]
+        self.eye_tracking_table = eye_df
+
 
     def _remove_pupil_area_outliers(self, tick_threshold=None,
                                     tick_std_multiplier_threshold=20,
