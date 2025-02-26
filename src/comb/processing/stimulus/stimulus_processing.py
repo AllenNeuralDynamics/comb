@@ -652,7 +652,9 @@ def get_visual_stimuli_df(
             for seg in range(len(display_sequence) - 1):
                 for index, row in timing_table.iterrows():
                     if row.start >= display_sequence[seg, 1]:
-                        timing_table.start[index] = timing_table.start[index] - display_sequence[seg, 1]+ display_sequence[seg + 1, 0]
+                        # timing_table.start[index] = timing_table.start[index] - display_sequence[seg, 1]+ display_sequence[seg + 1, 0]
+                        timing_table.loc[index, 'start'] = timing_table.loc[index, 'start'] - display_sequence[seg, 1]+ display_sequence[seg + 1, 0]
+
             timing_table.end = timing_table.start + timing_table.dif
 
             timing_table = timing_table[timing_table.end <= display_sequence[-1, 1]]
