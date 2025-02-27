@@ -189,12 +189,9 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         stimulus_timestamps = StimulusTimestamps(timestamps=self.stimulus_timestamps, monitor_delay=monitor_delay)
         
-        # if session_type == 'STAGE_1':
-        #     self._stimulus_presentations = self.get_stage_1_stimulus_presentations(stimulus_timestamps=stimulus_timestamps)
-        # else:
         st = Presentations.from_stimulus_file(stimulus_file=self.behavior_stimulus_file,
-                                                stimulus_timestamps=stimulus_timestamps,
-                                                project_code=self.project_code) # TODO: GET BEHAVIOR SESSION ID
+                                            stimulus_timestamps=stimulus_timestamps,
+                                            project_code=self.project_code) # TODO: GET BEHAVIOR SESSION ID
 
         self._stimulus_presentations = st.value # TODO: probably smoother way to return than call value
 
@@ -441,9 +438,12 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     # Patches
     def _patch_attributes(self):
         # Patch 1: Add trials information
-        self._add_trials_info()
+        # Only when it's from tasks
+        if 'STAGE_' not in self.behavior_stimulus_file.session_type:
+            self._add_trials_info()
         # Patch 2: Remove pupil area outliers
-        self._filter_pupil_data()
+        if 'eye_tracking' in self.file_paths.keys():
+            self._filter_pupil_data()
         # self._remove_pupil_area_outliers()
 
     
