@@ -42,7 +42,7 @@ class OphysPlaneGrabber(object):
                                      "average_projection_png": "_average_projection.png",
                                      "max_projection_png": "_maximum_projection.png",
                                      "motion_transform_csv": "_motion_transform.csv",
-                                     "extraction_h5": "_extraction.h5",
+                                     "extraction_h5": "extraction.h5",
                                      "dff_h5": "dff.h5",
                                      "events_oasis_h5": "events_oasis.h5"}
 

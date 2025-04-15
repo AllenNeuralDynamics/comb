@@ -45,16 +45,19 @@ class BehaviorOphysDataset:
             raise FileNotFoundError(f"Path does not exist: {plane_folder_path}")
         if not Path(raw_folder_path).exists():
             raise FileNotFoundError(f"Path does not exist: {raw_folder_path}")
+        
+        self.verbose = verbose
 
         self.ophys_plane_dataset = OphysPlaneDataset(plane_folder_path=plane_folder_path,
                                                      raw_folder_path=raw_folder_path,
                                                      roi_matching_path=roi_matching_path,
                                                      verbose=verbose,
                                                      pipeline_version=pipeline_version)
-        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path,
-                                                       project_code=project_code,
-                                                       eye_tracking_path=eye_tracking_path)
 
+        self.behavior_dataset = BehaviorSessionDataset(raw_folder_path=raw_folder_path, 
+                                                       project_code=project_code, 
+                                                       eye_tracking_path=eye_tracking_path,
+                                                       verbose=verbose)
         self.metadata = self._session_metadata()
 
 
@@ -142,7 +145,8 @@ class BehaviorMultiplaneOphysDataset:
 
     def _get_ophys_datasets(self):
         for plane_folder in self.session_folder_path.glob("*"):
-            if plane_folder.is_dir() and not plane_folder.stem.startswith("nextflow"):
+            if plane_folder.is_dir() and not plane_folder.stem.startswith("nextflow")\
+                                     and 'nwb' not in plane_folder.stem:
                 opid = plane_folder.stem
                 self.ophys_datasets[opid] = OphysPlaneDataset(plane_folder, 
                                                               raw_folder_path=self.raw_folder_path, 

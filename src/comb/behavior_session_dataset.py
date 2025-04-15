@@ -27,6 +27,7 @@ import os
 import h5py
 import numpy as np
 import xarray as xr
+from scipy import ndimage
 from pathlib import Path
 
 
@@ -67,11 +68,14 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                  data_path: Optional[str] = None,
                  monitor_delay: float = 0.0,
                  eye_tracking_path: Optional[Union[str, Path]] = None,
-                 project_code: Optional[str] = None):
+                 project_code: Optional[str] = None,
+                 verbose: Optional[bool] = False,
+                 apply_patch: Optional[bool] = True):
         super().__init__(raw_folder_path=raw_folder_path,
                          oeid=oeid,
                          data_path=data_path)
 
+        self.verbose = verbose
         self._load_behavior_stimulus_file()
         self.monitor_delay = monitor_delay # TODO: UPDATE
         self.project_code = project_code
@@ -88,6 +92,12 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         # TODO metadata
         
         self.trials = self.get_trials()
+
+        # Patch some of the issues, until they are resolved.
+        # 1. Adding trials information - dev on the way
+        # 2. Remove pupil area outliers - issue documented. Need to resolve from ellipse calculation (pupil dlc capsule)
+        if apply_patch:
+            self._patch_attributes()
 
     def _load_behavior_stimulus_file(self):
         # load file when BehaviorDataset is instantiated
@@ -133,6 +143,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     
     def get_eye_tracking_table(self):
         """Load and process eye tracking data"""
+        verbose = self.verbose
         try:
             eye_tracking_path = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
             eye_tracking_df = EyeTrackingFile.load_data(filepath=eye_tracking_path)
@@ -146,16 +157,17 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
             stimulus_timestamps = StimulusTimestamps(
                 timestamps=frame_times.to_numpy(),
                 monitor_delay=0.0)
-            print(stimulus_timestamps)
-            
             
             eye_tracking_table = EyeTrackingTable.from_data_file(data_file=eye_tracking_df, 
                                                                  stimulus_timestamps=stimulus_timestamps)
-        
-            logger.info("Loaded eye tracking data from: " + str(eye_tracking_path))
-        except Exception as e:
-            
-            logger.error("Could not load eye tracking data from: " + str(eye_tracking_path), exc_info=True)
+            if verbose:
+                logger.info("Loaded eye tracking data from: " + str(eye_tracking_path))
+        except Exception as e:            
+            if 'eye_tracking' not in self.file_paths.keys():
+                logger.error("eye_tracking not defined as a file_path", exc_info=True)
+            else:
+                eye_tracking_path = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
+                logger.error("Could not load eye tracking data from: " + str(eye_tracking_path), exc_info=True)
             eye_tracking_table = None
 
         self._eye_tracking_table = eye_tracking_table
@@ -179,12 +191,9 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         stimulus_timestamps = StimulusTimestamps(timestamps=self.stimulus_timestamps, monitor_delay=monitor_delay)
         
-        # if session_type == 'STAGE_1':
-        #     self._stimulus_presentations = self.get_stage_1_stimulus_presentations(stimulus_timestamps=stimulus_timestamps)
-        # else:
         st = Presentations.from_stimulus_file(stimulus_file=self.behavior_stimulus_file,
-                                                stimulus_timestamps=stimulus_timestamps,
-                                                project_code=self.project_code) # TODO: GET BEHAVIOR SESSION ID
+                                            stimulus_timestamps=stimulus_timestamps,
+                                            project_code=self.project_code) # TODO: GET BEHAVIOR SESSION ID
 
         self._stimulus_presentations = st.value # TODO: probably smoother way to return than call value
 
@@ -448,3 +457,110 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #         task_parameters,
     #         trials,
     #     )
+
+
+    # Patches
+    def _patch_attributes(self):
+        # Patch 1: Add trials information
+        # Only when it's from tasks
+        if 'STAGE_' not in self.behavior_stimulus_file.session_type:
+            self._add_trials_info()
+        # Patch 2: Remove pupil area outliers
+        if 'eye_tracking' in self.file_paths.keys():
+            self._filter_pupil_data()
+        # self._remove_pupil_area_outliers()
+
+    
+    def _add_trials_info(self, response_window=(0.15, 0.75)):
+        """ Temporary fix to add trials to bod
+        using stimulus_presentations and licks.
+        No correct rejection for this.
+        Columns: 'change_time', 'hit', 'miss'
+
+        Parameters
+        ----------
+        bod : BehaviorOphysDataset
+            The behavior ophys dataset object.
+
+        Returns
+        -------
+        bod : BehaviorOphysDataset
+            The behavior ophys dataset object with trials.
+        """
+
+        stimulus_presentations = self.stimulus_presentations
+        lick_times = self.licks.timestamps.values
+        trials = pd.DataFrame(columns=['change_time', 'hit', 'miss'])
+
+        stimulus_presentations['is_change'] = stimulus_presentations['is_change'].astype('boolean').fillna(False).astype(bool)
+        change_times = stimulus_presentations.query('is_change').start_time.values
+        response_windows = np.array([change_times + response_window[0], change_times + response_window[1]]).T
+        hit = np.zeros(len(change_times), 'bool')
+        for i, window in enumerate(response_windows):
+            if np.any((lick_times > window[0]) & (lick_times < window[1])):
+                hit[i] = 1
+        miss = ~hit
+        trials = pd.DataFrame({'change_time': change_times, 'hit': hit, 'miss': miss})
+
+        self.trials = trials
+    
+
+    def _filter_pupil_data(self,
+                            aspect_ratio_threshold: float = 0.6,
+                            pupil_average_confidence_threshold: float = 0.7,):
+        ''' Filter pupil data based on mean confidence and aspect ratio.
+        Temporary fix until new pupil tracking is in place.
+        '''
+        if aspect_ratio_threshold > 1:
+            aspect_ratio_threshold = 1 / aspect_ratio_threshold
+        eye_df = self.eye_tracking_table
+        eye_df['pupil_aspect_ratio'] = eye_df['pupil_width'] / eye_df['pupil_height']
+
+        if pupil_average_confidence_threshold is not None:
+            # Add low confidence mask
+            high_confidence_mask = eye_df['pupil_average_confidence'].values >= pupil_average_confidence_threshold
+        if aspect_ratio_threshold is not None:
+            # Add aspect ratio mask
+            aspect_ratio_mask = (eye_df['pupil_aspect_ratio'].values >= aspect_ratio_threshold) & \
+                (eye_df['pupil_aspect_ratio'].values <= 1/aspect_ratio_threshold)
+        eye_df = eye_df[high_confidence_mask & aspect_ratio_mask]
+        self.eye_tracking_table = eye_df
+
+
+    def _remove_pupil_area_outliers(self, tick_threshold=None,
+                                    tick_std_multiplier_threshold=20,
+                                    dilation_frames: int = 2,
+                                    pupil_average_confidence_threshold: float = 0.65):
+        """
+        Remove pupil area outliers from eye_tracking_table.
+            Remove frames that change more than tick_treshold values or more than tick_std_multiplier_threshold stds
+            If both are None, no frames are removed.
+            If both are not None, tick_threshold is used.
+            All threshold is on the absolute frame-to-frame difference.
+            Filtering is based on pupil area only.
+        Also add a mask for low confidence frames (average likelihood of pupil points).
+        Results applied to all.
+        """
+        eye_df = self.eye_tracking_table
+
+        if tick_threshold is None:
+            if tick_std_multiplier_threshold is not None:
+                tick_threshold = tick_std_multiplier_threshold * eye_df['pupil_area'].diff().abs().std()
+        
+        outlier_mask = np.zeros(len(eye_df), 'bool')
+        if tick_threshold is not None:
+            # Get pupil area change rate outlier mask
+            outlier_mask = eye_df.pupil_area.diff().abs().fillna(0) > tick_threshold
+
+        if pupil_average_confidence_threshold is not None:
+            # Add low confidence mask
+            low_confidence_mask = eye_df['pupil_average_confidence'].values < pupil_average_confidence_threshold
+            outlier_mask = outlier_mask | low_confidence_mask
+
+        if dilation_frames > 0:
+            outlier_mask = ndimage.binary_dilation(outlier_mask,
+                                                    iterations=dilation_frames)
+    
+        eye_df = eye_df[~outlier_mask]
+        self.eye_tracking_table = eye_df
+
