@@ -12,3 +12,21 @@ __all__ = [
     "BehaviorSessionDataset",
     "OphysPlaneDataset"
 ]
+
+# def one(x):
+#     if isinstance(x, str):
+#         return x
+#     try:
+#         xlen = len(x)
+#     except TypeError:
+#         return x
+#     if xlen != 1:
+#         raise OneResultExpectedError("Expected length one result, received: "
+#                                      f"{x} results from query")
+#     if isinstance(x, set):
+#         return list(x)[0]
+#     else:
+#         return x[0]
+
+# class OneResultExpectedError(RuntimeError):
+#     pass

@@ -44,6 +44,8 @@ class BehaviorStimulusFile(object):
             behavior_key = 'behavior'
         elif 'foraging' in self.data['items']:
             behavior_key = 'foraging'
+        else:
+            raise ValueError('[''items''] should have either ''behavior'' or ''foraging''')
 
         return behavior_key
 
