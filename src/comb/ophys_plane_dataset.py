@@ -628,8 +628,8 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         else:
             plane_path = self.metadata['plane_path']
             range_y, range_x = lamf_utils.get_motion_correction_crop_xy_range(plane_path)
-            range_y = [int(range_y[0]), -int(range_y[1])]
-            range_x = [int(range_x[0]), -int(range_x[1])]
+            range_y = [int(range_y[0]), int(range_y[1])]
+            range_x = [int(range_x[0]), int(range_x[1])]
             
             on_mask = np.zeros((self.metadata['fov_height'], self.metadata['fov_width']), dtype=bool)
             on_mask[range_y[0]:range_y[1], range_x[0]:range_x[1]] = True
