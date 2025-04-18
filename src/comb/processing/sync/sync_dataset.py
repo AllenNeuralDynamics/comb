@@ -89,27 +89,24 @@ class SyncDataset(object):
     FRAME_KEYS = ('frames', 'stim_vsync', 'vsync_stim')
     PHOTODIODE_KEYS = ('photodiode', 'stim_photodiode')
     OPTOGENETIC_STIMULATION_KEYS = ("LED_sync", "opto_trial")
-    EYE_TRACKING_KEYS = ("eye_frame_received",  # Expected eye tracking
-                                            # line label after 3/27/2020
-                        # clocks eye tracking frame pulses (port 0, line 9)
-                        "cam2_exposure",
-                        # previous line label for eye tracking
-                        # (prior to ~ Oct. 2018)
-                        "eyetracking",
-                        "eye_tracking",# An undocumented, but possible eye tracking line label  # NOQA E114
-                        "eye_cam_frame_readout", #4/18/2025
-                        "eye_cam_exposing", #4/18/2025
-                        )  
+    EYE_TRACKING_KEYS = ("eye_frame_received",  # Expected eye tracking line label after 3/27/2020
+                         "cam2_exposure",  # clocks eye tracking frame pulses (port 0, line 9)
+                         "eyetracking",
+                         # previous line label for eye tracking (prior to ~ Oct. 2018)
+                         "eye_tracking",  # An undocumented, but possible eye tracking line label  # NOQA E114
+                         "eye_cam_frame_readout",  # 4/18/2025
+                         "eye_cam_exposing",  # 4/18/2025
+                         )
     BEHAVIOR_TRACKING_KEYS = ("beh_frame_received",  # Expected behavior line label after 3/27/2020  # NOQA E127
                                                  # clocks behavior tracking frame # NOQA E127
                                                  # pulses (port 0, line 8)
-                            "cam1_exposure",
-                            "behavior_monitoring",
-                            "beh_cam_frame_readout", #4/18/2025
-                            "beh_cam_exposing", # 4/18/2025
-                            ) 
+                              "cam1_exposure",
+                              "behavior_monitoring",
+                              "beh_cam_frame_readout",  # 4/18/2025
+                              "beh_cam_exposing",  # 4/18/2025
+                              )
 
-    # Below line labels were added on 4/18/2025, based on sync file content                           
+    # Below line labels were added on 4/18/2025, based on sync file content
     FACE_TRACKING_KEYS = ("face_cam_frame_readout",
                           "face_cam_exposing",
                           )
@@ -143,7 +140,7 @@ class SyncDataset(object):
 
         """
         times = self.get_all_events()[:, 0:1].astype(np.int64)
-        
+
         intervals = np.ediff1d(times, to_begin=np.array([0], dtype=times.dtype))
         rollovers = np.where(intervals < 0)[0]
 
