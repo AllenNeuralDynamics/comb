@@ -104,7 +104,7 @@ class SyncDataset(object):
                               "cam1_exposure",
                               "behavior_monitoring")
 
-    DEPRECATED_KEYS = set()
+    DEPRECATED_KEYS = ("cam2_exposure", "eye_frame_received", "eyetracking", "cam1_exposure")
 
     def __init__(self, path):
         self.dfile = self.load(path)
