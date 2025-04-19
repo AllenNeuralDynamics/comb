@@ -2,12 +2,34 @@ from pathlib import Path
 from typing import Tuple, Optional, List
 import numpy as np
 import pandas as pd
-
+from comb import data_file_keys
 from comb.processing.sync.sync_dataset import SyncDataset
 
 """
 Copied from AllenSDK (version = ) on 01/19/2023 by @mattjdavis
 """
+def get_keys_for_camera_type(cam_name: str):
+    '''
+    Returns a tuple of line labels for a specific camera type/name
+    IY 04.18.25
+    '''
+    cam_name_lower = cam_name.lower()
+    if cam_name_lower == 'side': #side camera is named behavior
+        cam_name_lower = 'behavior'
+    keys = []
+
+    for attr_name in dir(data_file_keys):
+        attr_name_lower = attr_name.lower()
+
+        if cam_name_lower in attr_name_lower:
+            keys.append(attr_name)
+    
+    if len(keys) == 0:
+        raise ValueError(f"No attribute found containing '{cam_name}' (case-insensitive)")
+    elif len(keys) > 1:
+        raise ValueError(f"Multiple attributes found containing '{cam_name}': {matches}")
+
+    return getattr(data_file_keys, keys[0])
 
 
 def trim_discontiguous_times(times: np.ndarray, threshold=100) -> np.ndarray:
