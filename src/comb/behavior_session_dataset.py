@@ -1,6 +1,6 @@
 from comb.behavior_session_grabber import BehaviorSessionGrabber
 
-from comb.processing.stimulus import stimulus_processing
+# from comb.processing.stimulus import stimulus_processing
 from comb.processing.biometrics import running_processing
 from comb.processing.sync import sync_utilities
 from comb.processing.sync import time_sync
@@ -19,13 +19,13 @@ from comb.data_files.eye_tracking_file import EyeTrackingFile
 from . import data_file_keys
 
 from typing import Any, Optional, Union
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import pandas as pd
 import json
-import os
+# import os
 import h5py
 import numpy as np
-import xarray as xr
+# import xarray as xr
 from scipy import ndimage
 from pathlib import Path
 
@@ -33,6 +33,8 @@ from pathlib import Path
 
 import logging
 logger = logging.getLogger(__name__)
+
+camera_names = ['behavior', 'face', 'eye', 'nose']
 
 
 class LazyLoadable(object):
@@ -62,8 +64,9 @@ class LazyLoadable(object):
 
 class BehaviorSessionDataset(BehaviorSessionGrabber):
     """Includes stimulus, tasks, biometrics"""
-    def __init__(self, 
-                 raw_folder_path: Union[str, Path] = None, # where sync file is (pkl file)
+
+    def __init__(self,
+                 raw_folder_path: Union[str, Path] = None,  # where sync file is (pkl file)
                  oeid: Optional[str] = None,
                  data_path: Optional[str] = None,
                  monitor_delay: float = 0.0,
@@ -77,7 +80,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         self.verbose = verbose
         self._load_behavior_stimulus_file()
-        self.monitor_delay = monitor_delay # TODO: UPDATE
+        self.monitor_delay = monitor_delay  # TODO: UPDATE
         self.project_code = project_code
         self.get_stimulus_timestamps()
 
@@ -86,8 +89,8 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         if eye_tracking_path is not None:
             self.file_paths['eye_tracking'] = Path(eye_tracking_path)
-            #self.eye_tracking = _load_and_process_eye_tracking()
-        
+            # self.eye_tracking = _load_and_process_eye_tracking()
+
         self.metadata = None
         # TODO metadata
 
@@ -99,9 +102,10 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
     def _load_behavior_stimulus_file(self):
         # load file when BehaviorDataset is instantiated
-        self.behavior_stimulus_file = BehaviorStimulusFile.from_file(self.file_paths['stimulus_pkl'])
+        self.behavior_stimulus_file = BehaviorStimulusFile.from_file(
+            self.file_paths['stimulus_pkl'])
 
-    def get_stimulus_timestamps(self): 
+    def get_stimulus_timestamps(self):
         self._stimulus_timestamps = sync_utilities.get_synchronized_frame_times(
             session_sync_file=self.file_paths['sync_file'],
             sync_line_label_keys=data_file_keys.STIMULUS_KEYS,
@@ -134,49 +138,49 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #         eye_tracking_table = None
 
     #     self._eye_tracking_table = eye_tracking_table
-    
+
     #     return self._eye_tracking_table
     # eye_tracking = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
-    
-    
+
     def get_eye_tracking_table(self):
         """Load and process eye tracking data"""
         verbose = self.verbose
         try:
             eye_tracking_path = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
             eye_tracking_df = EyeTrackingFile.load_data(filepath=eye_tracking_path)
-            
+
             frame_times = sync_utilities.get_synchronized_frame_times(
                 session_sync_file=self.file_paths['sync_file'],
                 sync_line_label_keys=data_file_keys.EYE_TRACKING_KEYS,
                 drop_frames=None,
                 trim_after_spike=False)
-            
+
             stimulus_timestamps = StimulusTimestamps(
                 timestamps=frame_times.to_numpy(),
                 monitor_delay=0.0)
-            
-            eye_tracking_table = EyeTrackingTable.from_data_file(data_file=eye_tracking_df, 
+
+            eye_tracking_table = EyeTrackingTable.from_data_file(data_file=eye_tracking_df,
                                                                  stimulus_timestamps=stimulus_timestamps)
             if verbose:
                 logger.info("Loaded eye tracking data from: " + str(eye_tracking_path))
-        except Exception as e:            
+        except Exception as e:
             if 'eye_tracking' not in self.file_paths.keys():
                 logger.error("eye_tracking not defined as a file_path", exc_info=True)
             else:
                 eye_tracking_path = self.file_paths['eye_tracking'] / "ellipses_processed.h5"
-                logger.error("Could not load eye tracking data from: " + str(eye_tracking_path), exc_info=True)
+                logger.error("Could not load eye tracking data from: " +
+                             str(eye_tracking_path), exc_info=True)
             eye_tracking_table = None
 
         self._eye_tracking_table = eye_tracking_table
-    
+
         return self._eye_tracking_table
     eye_tracking_table = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
 
     def get_stimulus_presentations(self, monitor_delay=0.03613):
         """"TODO"""
-        # alternative timestamps, from pkl file. produces 
-        # stimulus_timestamps = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file, 
+        # alternative timestamps, from pkl file. produces
+        # stimulus_timestamps = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file,
         #                                            monitor_delay=self.monitor_delay)
 
         # Calculate monitor delay
@@ -187,16 +191,16 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         # if session_type == 'STAGE_1':
         #     monitor_delay = self.get_monitor_delay_stage_1()
 
-        stimulus_timestamps = StimulusTimestamps(timestamps=self.stimulus_timestamps, monitor_delay=monitor_delay)
-        
-        st = Presentations.from_stimulus_file(stimulus_file=self.behavior_stimulus_file,
-                                            stimulus_timestamps=stimulus_timestamps,
-                                            project_code=self.project_code) # TODO: GET BEHAVIOR SESSION ID
+        stimulus_timestamps = StimulusTimestamps(
+            timestamps=self.stimulus_timestamps, monitor_delay=monitor_delay)
 
-        self._stimulus_presentations = st.value # TODO: probably smoother way to return than call value
+        st = Presentations.from_stimulus_file(stimulus_file=self.behavior_stimulus_file,
+                                              stimulus_timestamps=stimulus_timestamps,
+                                              project_code=self.project_code)  # TODO: GET BEHAVIOR SESSION ID
+
+        self._stimulus_presentations = st.value  # TODO: probably smoother way to return than call value
 
         return self._stimulus_presentations
-
 
     def get_monitor_delay_stage_1(self, verbose=True):
         ''' Get monitor delay for STAGE_1 session type'''
@@ -212,7 +216,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         time_stamps = data[:, 0]
 
         # Read metadata
-        meta_str = hdf['meta'][()].decode('UTF-8').replace('\'','\"')
+        meta_str = hdf['meta'][()].decode('UTF-8').replace('\'', '\"')
         meta = json.loads(meta_str)
         line_labels = meta['line_labels']
         sample_freq = meta['ni_daq']['sample_rate']
@@ -221,17 +225,18 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         # TODO: probably calculate it from a separate file...? (there was one in the allenSDK)
         falling_edges = {}
         rising_edges = {}
-        
+
         for bit, label in enumerate(line_labels):
             if not label:
                 label = 'sig_' + str(bit)
-        
+
             bit_array = np.bitwise_and(sync_sig, 2 ** bit).astype(bool).astype(np.uint8)
             bit_changes = np.ediff1d(bit_array, to_begin=0)
             falling_edges[label] = time_stamps[np.where(bit_changes == 255)]/sample_freq
             rising_edges[label] = time_stamps[np.where(bit_changes == 1)]/sample_freq
 
-        delay_mu, delay_sd = time_sync.calculate_monitor_delay_visual_coding(rising_edges['stim_photodiode'], falling_edges['vsync_stim'])
+        delay_mu, delay_sd = time_sync.calculate_monitor_delay_visual_coding(
+            rising_edges['stim_photodiode'], falling_edges['vsync_stim'])
 
         if verbose:
             print("monitor delay: " + str(delay_mu) + '+,-' + str(delay_sd))
@@ -248,12 +253,56 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #     return self._stimulus_metadata
     # stimulus_metadata = LazyLoadable('_stimulus_metadata', get_stimulus_metadata)
 
+    def get_video_frame_times(self, camera_name: str):
+        '''
+        camera_name: Face, Side/Behavior, Nose, Eye (case insensitive)
+
+        '''
+
+        sync_line_label_keys = sync_utilities.get_keys_for_camera_type(camera_name)
+
+        # check for dropped frames
+        drop_frames = None
+
+        frame_times = sync_utilities.get_synchronized_frame_times(
+            session_sync_file=self.file_paths['sync_file'],
+            sync_line_label_keys=sync_line_label_keys,
+            drop_frames=drop_frames,
+            trim_after_spike=False
+        )
+        return frame_times
+
+    def get_behavior_videos_timestamps(self):
+
+        frame_times_dict = {}
+        max_len = 0
+        for camera_name in camera_names:
+            print(f'Loading timestamps for {camera_name} video')
+            try:
+                frame_times = self.get_video_frame_times(camera_name=camera_name)
+                frame_times_dict[camera_name] = frame_times
+                max_len = max(max_len, len(frame_times))
+
+            except (AttributeError, KeyError, NameError) as e:
+                print(f"{camera_name} camera did not record. Error: {str(e)}")
+                frame_times_dict[camera_name] = None
+
+        df = pd.DataFrame({
+            cam: pd.Series(times, index=range(len(times))
+                           ) if times is not None else pd.Series([float('nan')] * max_len)
+            for cam, times in frame_times_dict.items()
+        })
+        # to do: validate that len(frame_times)==len(frames), where frames are loaded from the movie directly.
+        df.index.name = "frame_index"
+
+        self._behavior_videos_timestamps = df
+        return self
 
     def get_running_speed(self):
         zscore_threshold = 10.0
         lowpass_filter = True
 
-        stimulus_timestamps = self.stimulus_timestamps 
+        stimulus_timestamps = self.stimulus_timestamps
 
         running_data_df = running_processing.get_running_df(
             data=self.behavior_stimulus_file.data, time=stimulus_timestamps,
@@ -265,7 +314,6 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         return self._running_speed
     running_speed = LazyLoadable('_running_speed', get_running_speed)
 
-
     def get_licks(self):
         self._licks = Licks.from_stimulus_file(
             stimulus_file=self.behavior_stimulus_file,
@@ -273,26 +321,23 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         return self._licks
     licks = LazyLoadable('_licks', get_licks)
 
-
     def get_rewards(self):
-        st = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file, 
+        st = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file,
                                                    monitor_delay=self.monitor_delay)
 
         self._rewards = Rewards.from_stimulus_file(
-                stimulus_file=self.behavior_stimulus_file,
-                stimulus_timestamps=st.subtract_monitor_delay()).value # TODO: value?
+            stimulus_file=self.behavior_stimulus_file,
+            stimulus_timestamps=st.subtract_monitor_delay()).value  # TODO: value?
         return self._rewards
     rewards = LazyLoadable('_rewards', get_rewards)
 
-
     # def get_task_parameters(self):
-    #     self._task_parameters = 
+    #     self._task_parameters =
     #     return self._task_parameters
     # task_parameters = LazyLoadable('_task_parameters', get_task_parameters)
 
-
     # def get_trials(self):
-        #   self._trials = 
+    #   self._trials =
     #     return self._trials
     # trials = LazyLoadable('_trials', get_trials)
 
@@ -323,7 +368,6 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #         )
 
     #     return stimulus_timestamps
-
 
     # @classmethod
     # def _read_licks(
@@ -369,7 +413,6 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #         stimulus_file=stimulus_file_lookup.behavior_stimulus_file,
     #         stimulus_timestamps=stimulus_timestamps.subtract_monitor_delay(),
     #     )
-
 
     # @classmethod
     # def _read_data_from_stimulus_file(
@@ -434,8 +477,8 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #         trials,
     #     )
 
-
     # Patches
+
     def _patch_attributes(self):
         # Patch 1: Add trials information
         # Only when it's from tasks
@@ -446,7 +489,6 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
             self._filter_pupil_data()
         # self._remove_pupil_area_outliers()
 
-    
     def _add_trials_info(self, response_window=(0.15, 0.75)):
         """ Temporary fix to add trials to bod
         using stimulus_presentations and licks.
@@ -468,9 +510,11 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         lick_times = self.licks.timestamps.values
         trials = pd.DataFrame(columns=['change_time', 'hit', 'miss'])
 
-        stimulus_presentations['is_change'] = stimulus_presentations['is_change'].astype('boolean').fillna(False).astype(bool)
+        stimulus_presentations['is_change'] = stimulus_presentations['is_change'].astype(
+            'boolean').fillna(False).astype(bool)
         change_times = stimulus_presentations.query('is_change').start_time.values
-        response_windows = np.array([change_times + response_window[0], change_times + response_window[1]]).T
+        response_windows = np.array([change_times + response_window[0],
+                                    change_times + response_window[1]]).T
         hit = np.zeros(len(change_times), 'bool')
         for i, window in enumerate(response_windows):
             if np.any((lick_times > window[0]) & (lick_times < window[1])):
@@ -479,11 +523,10 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         trials = pd.DataFrame({'change_time': change_times, 'hit': hit, 'miss': miss})
 
         self.trials = trials
-    
 
     def _filter_pupil_data(self,
-                            aspect_ratio_threshold: float = 0.6,
-                            pupil_average_confidence_threshold: float = 0.7,):
+                           aspect_ratio_threshold: float = 0.6,
+                           pupil_average_confidence_threshold: float = 0.7,):
         ''' Filter pupil data based on mean confidence and aspect ratio.
         Temporary fix until new pupil tracking is in place.
         '''
@@ -501,7 +544,6 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                 (eye_df['pupil_aspect_ratio'].values <= 1/aspect_ratio_threshold)
         eye_df = eye_df[high_confidence_mask & aspect_ratio_mask]
         self.eye_tracking_table = eye_df
-
 
     def _remove_pupil_area_outliers(self, tick_threshold=None,
                                     tick_std_multiplier_threshold=20,
@@ -521,8 +563,9 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         if tick_threshold is None:
             if tick_std_multiplier_threshold is not None:
-                tick_threshold = tick_std_multiplier_threshold * eye_df['pupil_area'].diff().abs().std()
-        
+                tick_threshold = tick_std_multiplier_threshold * \
+                    eye_df['pupil_area'].diff().abs().std()
+
         outlier_mask = np.zeros(len(eye_df), 'bool')
         if tick_threshold is not None:
             # Get pupil area change rate outlier mask
@@ -535,8 +578,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
 
         if dilation_frames > 0:
             outlier_mask = ndimage.binary_dilation(outlier_mask,
-                                                    iterations=dilation_frames)
-    
+                                                   iterations=dilation_frames)
+
         eye_df = eye_df[~outlier_mask]
         self.eye_tracking_table = eye_df
-
