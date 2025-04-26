@@ -20,7 +20,8 @@ dependencies = [
     "numpy",
     "pandas",
     "sparse",
-    "h5py"
+    "h5py",
+    "matplotlib",
 ]
 
 [project.optional-dependencies]
