@@ -22,6 +22,7 @@ dependencies = [
     "sparse",
     "h5py",
     "matplotlib",
+    "xarray",
 ]
 
 [project.optional-dependencies]
