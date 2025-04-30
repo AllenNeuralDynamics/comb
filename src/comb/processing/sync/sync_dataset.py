@@ -123,7 +123,7 @@ class SyncDataset(object):
 
     def _check_line_labels(self):
         if hasattr(self, "line_labels"):
-            deprecated_keys = set(self.line_labels) & self.DEPRECATED_KEYS
+            deprecated_keys = set(self.line_labels) & set(self.DEPRECATED_KEYS)
             if deprecated_keys:
                 warnings.warn((f"The loaded sync file contains the "
                                f"following deprecated line label keys: "
