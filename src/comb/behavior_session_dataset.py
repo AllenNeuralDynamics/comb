@@ -91,6 +91,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
             self.file_paths['eye_tracking'] = Path(eye_tracking_path)
             # self.eye_tracking = _load_and_process_eye_tracking()
 
+        self.file_paths['behavior_video_paths'] = list(Path(self.raw_folder_path).glob(**/'behavior-videos'/'*.mp4'))
         self.metadata = None
         # TODO metadata
 
@@ -325,10 +326,9 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                            ) if times is not None else pd.Series([float('nan')] * max_len)
             for cam, times in frame_times_dict.items()
         })
-        # to do: validate that len(frame_times)==len(frames), where frames are loaded from the movie directly.
         df.index.name = "frame_index"
 
-        self._behavior_videos_timestamps = df
+        self.behavior_videos_timestamps = df
         return self
 
     def get_running_speed(self):
