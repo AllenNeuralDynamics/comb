@@ -313,7 +313,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         for camera_name in camera_names:
             print(f'Loading timestamps for {camera_name} video')
             try:
-                frame_times = self.get_video_frame_times(camera_name=camera_name)
+                frame_times = self.get_video_frame_times(cam_name=camera_name)
                 frame_times_dict[camera_name] = frame_times
                 max_len = max(max_len, len(frame_times))
 
