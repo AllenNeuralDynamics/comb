@@ -188,7 +188,7 @@ def validate_sync_timestamps(sync_path: str, video_path: str, cam_name: str) -> 
     """
     keys = get_keys_for_camera_type(cam_name)
     timestamps = get_synchronized_frame_times(sync_path, keys)
-    if video_path not None:
+    if video_path is not None:
         frames = np.arange(get_total_frames(video_path))
         timestamps = compare_and_trim(timestamps, frames, cam_name)
     
