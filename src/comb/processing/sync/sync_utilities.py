@@ -188,8 +188,9 @@ def compare_and_trim(timestamps: np.ndarray, frames: np.ndarray, tag: str) -> np
     """
     keys = get_keys_for_camera_type(cam_name)
     timestamps = get_synchronized_frame_times(sync_path, keys)
-    frames = np.arange(get_total_frames(video_path))
-    timestamps = compare_and_trim(timestamps, frames, cam_name)
+    if video_path not None:
+        frames = np.arange(get_total_frames(video_path))
+        timestamps = compare_and_trim(timestamps, frames, cam_name)
     
     return timestamps
 
