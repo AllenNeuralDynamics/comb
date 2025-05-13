@@ -253,24 +253,57 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     #     return self._stimulus_metadata
     # stimulus_metadata = LazyLoadable('_stimulus_metadata', get_stimulus_metadata)
 
-    def get_video_frame_times(self, camera_name: str):
-        '''
-        camera_name: Face, Side/Behavior, Nose, Eye (case insensitive)
-
-        '''
-
-        sync_line_label_keys = sync_utilities.get_keys_for_camera_type(camera_name)
-
-        # check for dropped frames
-        drop_frames = None
-
-        frame_times = sync_utilities.get_synchronized_frame_times(
-            session_sync_file=self.file_paths['sync_file'],
-            sync_line_label_keys=sync_line_label_keys,
-            drop_frames=drop_frames,
-            trim_after_spike=False
-        )
+    def get_video_frame_times(self, cam_name: str) -> np.ndarray:
+        """
+        Extract frame times for a specific camera type from the sync file.
+    
+        This method identifies the corresponding video file for the specified camera type,
+        validates the sync timestamps against the number of frames in the video (or None if 
+        no video is found), and returns the adjusted frame times.
+    
+        Args:
+            cam_name (str): Camera type name (e.g., 'face', 'side/behavior', 'nose', 'eye').
+                            The input is case insensitive.
+    
+        Returns:
+            np.ndarray: Array of validated and adjusted frame times.
+    
+        Notes:
+            - The `side` camera type is treated as `behavior` to maintain consistency.
+            - The camera name is converted to lowercase and prefixed with an underscore 
+              to avoid potential folder name conflicts.
+            - If the specified camera name is not found, a warning is printed and `None` 
+              is passed to the `validate_sync_timestamps` function.
+    
+        Example:
+            >>> frame_times = obj.get_video_frame_times("Face")
+        """
+        # Sync file path
+        sync_path = self.file_paths['sync_file']
+        cam_name_lower = cam_name.lower()
+    
+        # Handle 'side' as 'behavior'
+        if cam_name_lower == 'side':
+            cam_name_lower = 'behavior'
+    
+        # Construct camera identifier with an underscore to prevent folder name conflicts
+        camera_identifier = f"_{cam_name_lower}_"
+        video_path = None
+    
+        # Search for the video path matching the camera type
+        for video in self.video_paths:
+            if camera_identifier in video.lower():
+                video_path = video
+                break
+    
+        if video_path is None:
+            print(f"Warning: No video found for '{cam_name}' camera name. Proceeding without video path.")
+    
+        # Validate sync timestamps regardless of video path being found or not
+        frame_times = sync_utilities.validate_sync_timestamps(sync_path, video_path, cam_name)
+    
         return frame_times
+
 
     def get_behavior_videos_timestamps(self):
 
