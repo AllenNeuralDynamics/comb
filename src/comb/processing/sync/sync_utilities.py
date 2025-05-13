@@ -156,7 +156,7 @@ def compare_and_trim(timestamps: np.ndarray, frames: np.ndarray, tag: str) -> np
     
     return timestamps
 
- def validate_sync_timestamps(sync_path: str, video_path: str, cam_name: str) -> np.ndarray:
+def validate_sync_timestamps(sync_path: str, video_path: str, cam_name: str) -> np.ndarray:
     """
     Validate and align sync timestamps with video frames.
 
