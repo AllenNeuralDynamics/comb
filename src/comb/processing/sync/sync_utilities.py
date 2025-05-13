@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from comb import data_file_keys
 import os
+import cv2
 from comb.processing.sync.sync_dataset import SyncDataset
 
 """
