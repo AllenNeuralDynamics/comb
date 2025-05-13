@@ -293,7 +293,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
     
         # Search for the video path matching the camera type
         for video in self.file_paths['behavior_video_paths']:
-            if camera_identifier in video.lower():
+            if camera_identifier in str(video).lower():
                 video_path = video
                 break
     
