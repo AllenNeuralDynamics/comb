@@ -3,6 +3,7 @@ from typing import Tuple, Optional, List
 import numpy as np
 import pandas as pd
 from comb import data_file_keys
+import os
 from comb.processing.sync.sync_dataset import SyncDataset
 
 """
