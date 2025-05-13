@@ -277,7 +277,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
               is passed to the `validate_sync_timestamps` function.
     
         Example:
-            >>> frame_times = obj.get_video_frame_times("Face")
+            >>> frame_times = BSD.get_video_frame_times("Face")
         """
         # Sync file path
         sync_path = self.file_paths['sync_file']
