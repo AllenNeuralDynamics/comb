@@ -113,3 +113,84 @@ def get_synchronized_frame_times(session_sync_file: Path,
         times = [t for ix, t in enumerate(times) if ix not in drop_frames]
 
     return pd.Series(times)
+
+def get_total_frames(video_path: Path):
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"Video file not found: {video_path}")
+
+    # Open the video file
+    cap = cv2.VideoCapture(video_path)
+
+    # Get frame rate (fps) and total frame count
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    return frame_count
+    
+
+def compare_and_trim(timestamps: np.ndarray, frames: np.ndarray, tag: str) -> np.ndarray:
+    """
+    Compare the lengths of two arrays and handle discrepancies.
+    First frame is metadata, that should be dropped in video analysis.
+
+    - If the length of `timestamps` is greater than `frames - 1`, a warning is printed, and `timestamps` is trimmed.
+    - If the length of `timestamps` is less than `frames - 1`, a warning is printed, but no changes are made.
+    - If the length of `timestamps` is exactly `frames - 1`, a confirmation statement is printed.
+
+    Args:
+        timestamps (np.ndarray): Array of timestamps from sync file.
+        frames (np.ndarray): Array representing the number of frames in a movie.
+        tag (str): Identifier for the behavior video.
+
+    Returns:
+        np.ndarray: The adjusted `timestamps` array.
+    """
+    len_timestamps, len_frames = len(timestamps), len(frames)
+
+    if len_timestamps > len_frames - 1:
+        print(f"Warning: Length of timestamps ({len_timestamps}) is greater than frames minus one ({len_frames - 1}). Trimming timestamps.")
+        timestamps = timestamps[:len_frames - 1]
+    elif len_timestamps < len_frames - 1:
+        print(f"Warning: Length of timestamps ({len_timestamps}) is less than frames minus one ({len_frames - 1}). No trimming applied.")
+    else:
+        print(f"sync timestamps match {tag} behavior video length")
+    
+    return timestamps
+
+ def validate_sync_timestamps(sync_path: str, video_path: str, cam_name: str) -> np.ndarray:
+    """
+    Validate and align sync timestamps with video frames.
+
+    This function extracts timestamps from the sync file based on the camera type,
+    compares them with the number of frames in the corresponding video, and adjusts
+    the length of the timestamps array if necessary.
+
+    Args:
+        sync_path (str): Path to the synchronization file.
+        video_path (str): Path to the video file.
+        cam_name (str): Camera type name (e.g., 'behavior', 'face', 'eye').
+
+    Returns:
+        np.ndarray: The validated and adjusted timestamps array.
+
+    Notes:
+        - If the length of timestamps is greater than the number of frames minus one, 
+          a warning is printed, and the timestamps are trimmed to match the frame count.
+        - If the length of timestamps is less than the number of frames minus one, 
+          a warning is printed, but no changes are made.
+        - If the length of timestamps matches the number of frames minus one, 
+          a confirmation message is printed.
+
+    Example:
+        >>> sync_path = "path/to/sync_file.h5"
+        >>> video_path = "path/to/video.mp4"
+        >>> cam_name = "behavior"
+        >>> timestamps = validate_sync_timestamps(sync_path, video_path, cam_name)
+    """
+    keys = get_keys_for_camera_type(cam_name)
+    timestamps = get_synchronized_frame_times(sync_path, keys)
+    frames = np.arange(get_total_frames(video_path))
+    timestamps = compare_and_trim(timestamps, frames, cam_name)
+    
+    return timestamps
+
+
