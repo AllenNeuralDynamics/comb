@@ -91,7 +91,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
             self.file_paths['eye_tracking'] = Path(eye_tracking_path)
             # self.eye_tracking = _load_and_process_eye_tracking()
 
-        self.file_paths['behavior_video_paths'] = list(Path(self.raw_folder_path).glob('**/behavior-videos'/'*.mp4'))
+        self.file_paths['behavior_video_paths'] = list(Path(self.raw_folder_path).glob('**/behavior-videos/*.mp4'))
         self.metadata = None
         # TODO metadata
 
