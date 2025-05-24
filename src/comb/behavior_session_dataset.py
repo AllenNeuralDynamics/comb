@@ -303,8 +303,8 @@ def get_video_frame_times(self, cam_name: str) -> np.ndarray:
     else:
         video_path = None # will skip validation
         frame_times = sync_utilities.validate_sync_timestamps(sync_path, video, cam_name)
-        print(f"Did not find video for '{cam_name}' camera name. Please use valid names (eye, face, nose, behavior/side).
-        Returning frame_times from sync file without validation.")
+        print(f"""Did not find video for '{cam_name}' camera name. Please use valid names (eye, face, nose, behavior/side).
+        Returning frame_times from sync file without validation.""")
     
     return frame_times
 
