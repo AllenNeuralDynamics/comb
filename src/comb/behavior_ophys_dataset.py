@@ -146,7 +146,7 @@ class BehaviorMultiplaneOphysDataset:
     def _get_ophys_datasets(self):
         for plane_folder in self.session_folder_path.glob("*"):
             if plane_folder.is_dir() and not plane_folder.stem.startswith("nextflow")\
-                                     and not 'nwb' in plane_folder:
+                                     and not 'nwb' in str(plane_folder):
                 opid = plane_folder.stem
                 self.ophys_datasets[opid] = OphysPlaneDataset(plane_folder, 
                                                               raw_folder_path=self.raw_folder_path, 
