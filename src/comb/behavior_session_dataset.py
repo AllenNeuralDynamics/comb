@@ -462,7 +462,14 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                 no change.
             change_time_no_display_delay [VBN only]: (float)
                 Time of the change in seconds, before the display lag is
-                accounted for and applied.
+                accounted for and applied. 
+                
+            NOTE: change_time_no_display_delay
+                float Experiment time when the task-control computer commanded an image change. 
+                This change time is used to determine the response window during which a lick will trigger a reward. 
+                Note that due to display lag, this is not the time when the change image actually appears on the screen. 
+                To get this time, you need the stimulus_presentations table (more about this below).
+
     """
 
         stimulus_timestamps = self.stimulus_timestamps
