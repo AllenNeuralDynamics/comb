@@ -24,6 +24,7 @@ class Licks(object):
         else:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{attr}'")
     
+    
     @classmethod
     def from_stimulus_file(
             cls,

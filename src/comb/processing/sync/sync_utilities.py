@@ -1,9 +1,36 @@
-from pathlib import Path
-from typing import Tuple, Optional, List
+import os
 import numpy as np
 import pandas as pd
 from comb import data_file_keys
+from pathlib import Path
+from typing import Tuple, Optional, List
 from comb.processing.sync.sync_dataset import SyncDataset
+
+
+def read_hdf5_file(filepath, key=None):
+    """
+    Reads an HDF5 file and returns the data for a specified key or lists all top-level keys if no key is provided.
+    
+    Parameters:
+    - filepath: str, path to the HDF5 file.
+    - key: str, optional, the key for which to retrieve data.
+    
+    Returns:
+    - If key is None, returns a list of top-level keys in the HDF5 file.
+    - If key is specified, returns the data associated with that key.
+    """
+    import h5py
+    
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"The file {filepath} does not exist.")
+    with h5py.File(filepath, 'r') as f:
+        if key is None:
+            # List all top-level groups/datasets
+            return list(f.keys())
+        else:
+            data = f[key][:]
+            return data
+
 
 """
 Copied from AllenSDK (version = ) on 01/19/2023 by @mattjdavis

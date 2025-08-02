@@ -11,6 +11,10 @@ from comb.data_files.behavior_stimulus_file import BehaviorStimulusFile
 from comb.processing.timestamps.stimulus_timestamps import StimulusTimestamps
 from comb.processing.stimulus.presentations import Presentations
 from comb.processing.biometrics.rewards import Rewards
+from comb.processing.trials.trials import Trial
+from comb.processing.trials import trials as trials_processing
+
+
 
 import comb.processing.eye_tracking as eye_tracking
 from comb.processing.eye_tracking_table import EyeTrackingTable
@@ -113,6 +117,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
             trim_after_spike=True)
 
         return self._stimulus_timestamps
+    stimulus_timestamps = LazyLoadable('_stimulus_timestamps', get_stimulus_timestamps)
 
     # def get_stimulus_presentations_old(self):
     #     """"This is an old method; skips Presentations class, which has more updated processing"""
@@ -177,6 +182,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         return self._eye_tracking_table
     eye_tracking_table = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
 
+
     def get_stimulus_presentations(self, monitor_delay=0.03613):
         """"TODO"""
         # alternative timestamps, from pkl file. produces
@@ -201,6 +207,8 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         self._stimulus_presentations = st.value  # TODO: probably smoother way to return than call value
 
         return self._stimulus_presentations
+    stimulus_presentations = LazyLoadable('_stimulus_presentations', get_stimulus_presentations)
+
 
     def get_monitor_delay_stage_1(self, verbose=True):
         ''' Get monitor delay for STAGE_1 session type'''
@@ -335,6 +343,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         self._behavior_videos_timestamps = df
         return self
 
+
     def get_running_speed(self):
         zscore_threshold = 10.0
         lowpass_filter = True
@@ -351,12 +360,14 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         return self._running_speed
     running_speed = LazyLoadable('_running_speed', get_running_speed)
 
+
     def get_licks(self):
         self._licks = Licks.from_stimulus_file(
             stimulus_file=self.behavior_stimulus_file,
             stimulus_timestamps=self.stimulus_timestamps)
         return self._licks
     licks = LazyLoadable('_licks', get_licks)
+
 
     def get_rewards(self):
         st = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file,
@@ -368,19 +379,135 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         return self._rewards
     rewards = LazyLoadable('_rewards', get_rewards)
 
+
     # def get_task_parameters(self):
     #     self._task_parameters =
     #     return self._task_parameters
     # task_parameters = LazyLoadable('_task_parameters', get_task_parameters)
 
-    # def get_trials(self):
-    #   self._trials =
-    #     return self._trials
-    # trials = LazyLoadable('_trials', get_trials)
 
-    # lazy load
-    stimulus_presentations = LazyLoadable('_stimulus_presentations', get_stimulus_presentations)
-    stimulus_timestamps = LazyLoadable('_stimulus_timestamps', get_stimulus_timestamps)
+
+    def get_trials(self):
+        """Get trials from data file saved at the end of the
+    behavior session.
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe containing trial and behavioral response data.
+
+        dataframe columns:
+            trials_id [index]: (int)
+                trial identifier
+            lick_times: (array of float)
+                array of lick times in seconds during that trial.
+                Empty array if no licks occured during the trial.
+            reward_time: (NaN or float)
+                Time the reward is delivered following a correct
+                response or on auto rewarded trials.
+            reward_volume: (float)
+                volume of reward in ml. 0.005 for auto reward
+                0.007 for earned reward
+            hit: (bool)
+                Behavior response type. On catch trial mouse licks
+                within reward window.
+            false_alarm: (bool)
+                Behavior response type. On catch trial mouse licks
+                within reward window.
+            miss: (bool)
+                Behavior response type. On a go trial, mouse either
+                does not lick at all, or licks after reward window
+            is_change: (bool)
+                True if an image change occurs during the trial
+                (if the trial was both a 'go' trial and the trial
+                was not aborted)
+            aborted: (bool)
+                Behavior response type. True if the mouse licks
+                before the scheduled change time.
+            go: (bool)
+                Trial type. True if there was a change in stimulus
+                image identity on this trial
+            catch: (bool)
+                Trial type. True if there was not a change in stimulus
+                identity on this trial
+            auto_rewarded: (bool)
+                True if free reward was delivered for that trial.
+                Occurs during the first 5 trials of a session and
+                throughout as needed.
+            correct_reject: (bool)
+                Behavior response type. On a catch trial, mouse
+                either does not lick at all or licks after reward
+                window
+            start_time: (float)
+                start time of the trial in seconds
+            stop_time: (float)
+                end time of the trial in seconds
+            trial_length: (float)
+                duration of trial in seconds (stop_time -start_time)
+            response_time: (float)
+                time of first lick in trial in seconds and NaN if
+                trial aborted
+            initial_image_name: (string)
+                name of image presented at start of trial
+            change_image_name: (string)
+                name of image that is changed to at the change time,
+                on go trials
+            change_time: (float)
+                Time in the session at which the change occurred.
+            response_latency [VBO only]: (float)
+                Delay between change and first lick in seconds. NaN if
+                no change occurred.
+            change_frame: (int)
+                Frame in the session at which the change occurred. -99 if
+                no change.
+            change_time_no_display_delay [VBN only]: (float)
+                Time of the change in seconds, before the display lag is
+                accounted for and applied.
+    """
+
+        stimulus_timestamps = self.stimulus_timestamps
+        licks = self.licks
+        rewards = self.rewards
+
+        pkl_data = pd.read_pickle(self.file_paths['stimulus_pkl']) 
+        sync_data = sync_utilities.read_hdf5_file(self.file_paths['sync_file'], key=None)
+
+        bsf = pkl_data
+        # bsf = stimulus_file.data
+        stimuli = bsf["items"]["behavior"]["stimuli"]
+        trial_log = bsf["items"]["behavior"]["trial_log"]
+
+        trial_bounds = trials_processing.get_trial_bounds(trial_log=trial_log)
+
+        all_trial_data = [None] * len(trial_log)
+
+        for idx, trial in enumerate(trial_log):
+            trial_start, trial_end = trial_bounds[idx]
+            t = Trial(
+                trial=trial,
+                start=trial_start,
+                end=trial_end,
+                pkl_data=bsf,
+                index=idx,
+                stimulus_timestamps=stimulus_timestamps,
+                licks=licks,
+                rewards=rewards,
+                stimuli=stimuli,
+                sync_file=sync_data,
+            )
+
+            all_trial_data[idx] = t.data
+
+        trials = trials.rename(columns={"stimulus_change": "is_change"})
+        trials = pd.DataFrame(all_trial_data).set_index("trial")
+        trials.index = trials.index.rename("trials_id")
+        trials = trials[trials_processing.columns_to_output()]
+
+        self._trials = trials
+
+        return self._trials
+    trials = LazyLoadable('_trials', get_trials)
+
 
     # @classmethod
     # def _read_behavior_stimulus_timestamps(
@@ -559,7 +686,8 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         miss = ~hit
         trials = pd.DataFrame({'change_time': change_times, 'hit': hit, 'miss': miss})
 
-        self.trials = trials
+        self.trials_info = trials
+
 
     def _filter_pupil_data(self,
                            aspect_ratio_threshold: float = 0.6,
