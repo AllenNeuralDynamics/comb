@@ -532,7 +532,11 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         # resample for mesoscope data, planes are interleaved in sync file
         ts_len = len(ophys_timestamps)
         group_count = self.metadata['plane_group_count']
-        plane_group = self.metadata['plane_group_index']                                       
+        plane_group = self.metadata['plane_group_index']
+        # Sometimes, the number of timestamps across planes do not match. Force them by trimming at the end.
+        trailing_frames = ts_len % group_count
+        if trailing_frames != 0:
+            ophys_timestamps = ophys_timestamps[:-trailing_frames]
         self._ophys_timestamps = ophys_timestamps[plane_group::group_count]
         rs_len = len(self._ophys_timestamps)
 
