@@ -575,10 +575,14 @@ def get_video_frame_times(self, cam_name: str) -> np.ndarray:
         if pupil_average_confidence_threshold is not None:
             # Add low confidence mask
             high_confidence_mask = eye_df['pupil_average_confidence'].values >= pupil_average_confidence_threshold
+        else:
+            high_confidence_mask = np.ones(len(eye_df), 'bool')
         if aspect_ratio_threshold is not None:
             # Add aspect ratio mask
             aspect_ratio_mask = (eye_df['pupil_aspect_ratio'].values >= aspect_ratio_threshold) & \
                 (eye_df['pupil_aspect_ratio'].values <= 1/aspect_ratio_threshold)
+        else:
+            aspect_ratio_mask = np.ones(len(eye_df), 'bool')
         eye_df = eye_df[high_confidence_mask & aspect_ratio_mask]
         self.eye_tracking_table = eye_df
 
