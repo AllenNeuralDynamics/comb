@@ -114,7 +114,9 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             valid_prefix = ["VISp", "VISl", "VISal", "VISam", "VISpm", "VISrl"]
             
             processed_path = self.metadata["plane_path"].parent
-            plane_folders = [f for f in processed_path.iterdir() if f.is_dir() and '.nwb' not in f.name]
+            plane_folders = [f for f in processed_path.iterdir() if f.is_dir() and '.nwb' not in f.name \
+                and 'vasculature' not in f.name \
+                and 'matched' not in f.name]
             
             assert all([f.name.split('_')[1].isdigit() for f in plane_folders]), "Plane folders are not named as expected"
             assert all([f.name.split('_')[0] in valid_prefix for f in plane_folders]), "Plane folders are not named as expected"
