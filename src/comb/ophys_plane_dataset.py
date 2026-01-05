@@ -298,16 +298,24 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return table
 
     def get_average_projection_png(self):
-        self._average_projection = plt.imread(self.file_paths['average_projection_png'])
-        return self._average_projection
+        self._average_projection_raw = plt.imread(self.file_paths['average_projection_png'])
+        return self._average_projection_raw
 
     def get_max_projection_png(self):
-        self._max_projection = plt.imread(self.file_paths['max_projection_png'])
-        return self._max_projection
+        self._max_projection_raw = plt.imread(self.file_paths['max_projection_png'])
+        return self._max_projection_raw
 
     def get_motion_transform_csv(self):
         self._motion_transform = pd.read_csv(self.file_paths['motion_transform_csv'])
         return self._motion_transform
+    
+    def get_decrosstalk_average_projection_png(self):
+        self._average_projection_decrosstalk = plt.imread(self.file_paths['decrosstalk_avg_png'])
+        return self._average_projection_decrosstalk
+
+    def get_decrosstalk_max_projection_png(self):
+        self._max_projection = plt.imread(self.file_paths['decrosstalk_max_png'])
+        return self._max_projection_decrosstalk
     
     def roi_table_from_mask_arrays(pixel_masks: np.ndarray):
         
@@ -595,9 +603,12 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return self._ophys_timestamps
 
     # These data products should be available in processed data assets
-    average_projection = LazyLoadable('_average_projection', get_average_projection_png)
-    max_projection = LazyLoadable('_max_projection', get_max_projection_png)
+    average_projection_raw = LazyLoadable('_average_projection_raw', get_average_projection_png)
+    max_projection_raw = LazyLoadable('_max_projection_raw', get_max_projection_png)
     motion_transform = LazyLoadable('_motion_transform', get_motion_transform_csv)
+    average_projection_decrosstalk = LazyLoadable('_average_projection_decrosstalk', get_decrosstalk_average_projection_png)
+    max_projection_decrosstalk = LazyLoadable('_max_projection_decrosstalk', get_decrosstalk_max_projection_png)
+
     cell_specimen_table = LazyLoadable('_cell_specimen_table', get_cell_specimen_table)
     raw_fluorescence_traces = LazyLoadable('_raw_fluorescence_traces', get_raw_fluorescence_traces)
     neuropil_traces = LazyLoadable('_neuropil_traces', get_neuropil_traces)
@@ -629,6 +640,8 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         obj.get_max_projection_png()
         obj.get_average_projection_png()
         obj.get_motion_transform_csv()
+        obj.get_decrosstalk_average_projection_png()
+        obj.get_decrosstalk_max_projection_png()
 
         # obj.get_metadata()
         # obj.get_timestamps()
