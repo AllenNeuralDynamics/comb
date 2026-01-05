@@ -310,11 +310,48 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return self._motion_transform
     
     def get_decrosstalk_average_projection_png(self):
-        self._average_projection_decrosstalk = plt.imread(self.file_paths['decrosstalk_avg_png'])
+        if self.file_paths['decrosstalk_avg_png'] is not None:
+            img = plt.imread(self.file_paths['decrosstalk_avg_png'])
+            if len(img.shape) == 3:
+                if img.shape[2] == 4:
+                    # RGBA image, drop alpha channel and check if RGB are the same, then use one channel
+                    assert np.array_equal(img[:, :, 0], img[:, :, 1]) and np.array_equal(img[:, :, 0], img[:, :, 2]), "Decrosstalk average projection image RGB channels are not the same"
+                    self._average_projection_decrosstalk = img[:, :, 0]
+                else:
+                    raise ValueError("Unexpected number of channels in decrosstalk average projection image")
+            else:
+                self._average_projection_decrosstalk = img
+        else: # backward compatibility. 
+            # TODO: remove after all data are regenerated with pngs
+            print("Decrosstalk average projection png not found, approximating from episodic mean fov file instead.")
+            if self.file_paths['decrosstalk_h5'] is None:
+                raise ValueError("decrosstalk_h5 file not found, cannot approximate average projection")
+            emf_path = list(self.file_paths['decrosstalk_h5'].parent.glob('*_decrosstalk_episodic_mean_fov.h5'))
+            if len(emf_path) == 0:
+                raise ValueError("decrosstalk_episodic_mean_fov.h5 file not found, cannot approximate average projection")
+            elif len(emf_path) > 1:
+                raise ValueError("Multiple decrosstalk_episodic_mean_fov.h5 files found, cannot approximate average projection")
+            emf_path = emf_path[0]
+            with h5py.File(emf_path, 'r') as f:
+                average_projection_decrosstalk = np.mean(f['data'], axis=0).astype(np.float32)
+                average_projection_decrosstalk /= np.max(average_projection_decrosstalk)
+                self._average_projection_decrosstalk = average_projection_decrosstalk
         return self._average_projection_decrosstalk
 
     def get_decrosstalk_max_projection_png(self):
-        self._max_projection = plt.imread(self.file_paths['decrosstalk_max_png'])
+        if self.file_paths['decrosstalk_max_png'] is not None:
+            img = plt.imread(self.file_paths['decrosstalk_max_png'])
+            if len(img.shape) == 3:
+                if img.shape[2] == 4:
+                    # RGBA image, drop alpha channel and check if RGB are the same, then use one channel
+                    assert np.array_equal(img[:, :, 0], img[:, :, 1]) and np.array_equal(img[:, :, 0], img[:, :, 2]), "Decrosstalk average projection image RGB channels are not the same"
+                    self._max_projection_decrosstalk = img[:, :, 0]
+                else:
+                    raise ValueError("Unexpected number of channels in decrosstalk average projection image")
+            else:
+                self._max_projection_decrosstalk = img
+        else:
+            raise NotImplementedError("Decrosstalk max projection png not found, calculating from h5 file will take too long.")
         return self._max_projection_decrosstalk
     
     def roi_table_from_mask_arrays(pixel_masks: np.ndarray):

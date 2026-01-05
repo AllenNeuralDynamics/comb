@@ -44,6 +44,7 @@ class OphysPlaneGrabber(object):
                                      "motion_transform_csv": "_motion_transform.csv",
                                      "decrosstalk_avg_png": "_decrosstalk_avg_img.png",
                                      "decrosstalk_max_png": "_decrosstalk_max_img.png",
+                                     "decrosstalk_h5": "decrosstalk.h5",
                                      "extraction_h5": "extraction.h5",
                                      "dff_h5": "dff.h5",
                                      "events_oasis_h5": "events_oasis.h5"}
