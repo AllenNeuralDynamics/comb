@@ -456,8 +456,9 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             roi_table = roi_table.rename(columns={'id': 'cell_roi_id'})
             # cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
             # self._set_all_nan_traces_invalid()
-            
-            self._cell_specimen_table = roi_table
+            neuropil_table = self.get_neuropil_masks()
+            self._cell_specimen_table = pd.merge(roi_table, neuropil_table, 
+                                                    on='cell_roi_id', how='left')
             return self._cell_specimen_table
 
     def get_raw_fluorescence_traces(self):
@@ -493,14 +494,20 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return self._neuropil_traces
 
     def get_neuropil_masks(self):
+        with h5py.File(self.file_paths['extraction_h5']) as f:
+            neuropil_coords = f['rois']['neuropil_coords'][:]
 
-        with open(self.file_paths['neuropil_masks_json']) as json_file:
-            neuropil_mask_data = json.load(json_file)
-
-        neuropil_masks = pd.DataFrame(neuropil_mask_data['neuropils'])
-        neuropil_masks = neuropil_masks.rename(columns={'id':'cell_roi_id'})
-        neuropil_masks = self._add_csid_to_table(neuropil_masks)
-        self._neuropil_masks = neuropil_masks
+        cell_roi_id = np.unique(neuropil_coords[0,:])
+        neuropil_table = pd.DataFrame({'cell_roi_id': cell_roi_id})
+        neuropil_matrix = []
+        for roi_id in cell_roi_id:
+            roi_ind = np.where(neuropil_coords[0,:] == roi_id)[0]
+            coords = neuropil_coords[1:, roi_ind]
+            matrix = np.zeros(self.average_projection_decrosstalk.shape, dtype=bool)
+            matrix[coords[0,:], coords[1,:]] = True
+            neuropil_matrix.append(matrix)
+        neuropil_table['neuropil_matrix'] = neuropil_matrix
+        self._neuropil_masks = neuropil_table
         return self._neuropil_masks
 
     def get_neuropil_traces_xr(self):
@@ -719,6 +726,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
     def _filter_rois(self, small_roi_radius_threshold_in_um=4):
         ''' Filter ROIs based on size and motion border
+        Update 01/06/2026: Remove ROIs that have dimmer mean fluorescence than their surrounding neuropil
 
         Parameters
         ----------
@@ -727,7 +735,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
 
         '''
         cell_specimen_table = self.cell_specimen_table
-        if np.array([k in cell_specimen_table.columns for k in ['touching_motion_border', 'small_roi', 'valid_roi']]).all():
+        if np.array([k in cell_specimen_table.columns for k in ['touching_motion_border', 'small_roi', 'dim_soma', 'valid_roi']]).all():
             pass
         else:
             plane_path = self.metadata['plane_path']
@@ -751,8 +759,26 @@ class OphysPlaneDataset(OphysPlaneGrabber):
             area_threshold = np.pi * (small_roi_radius_threshold_in_pix**2)
             
             cell_specimen_table['small_roi'] = cell_specimen_table['mask_matrix'].apply(lambda x: len(np.where(x)[0]) < area_threshold)
-            cell_specimen_table['valid_roi'] = ~cell_specimen_table['touching_motion_border'] & ~cell_specimen_table['small_roi']
-    
+                
+            # Patch 2: dim_soma filtering based on soma vs neuropil mean intensity
+            # it is difficult to get reliable neuropil mask (this process is coveted)
 
+            def _dim_soma(row, avg_proj_decrosstalk):
+                roi_mask = row.mask_matrix > 0 # binarize for weighted mask
+                neuropil_mask = row.neuropil_matrix # already binarized
+                
+                roi_mask_img = avg_proj_decrosstalk * roi_mask
+                roi_mean_intensity = np.mean(roi_mask_img[roi_mask_img > 0])
+                neuropil_mask_img = avg_proj_decrosstalk * neuropil_mask
+                neuropil_mean_intensity = np.mean(neuropil_mask_img[neuropil_mask_img > 0])
+                
+                if roi_mean_intensity < neuropil_mean_intensity:
+                    return True
+                else:
+                    return False
+            
+            cell_specimen_table['dim_soma'] = cell_specimen_table.apply(_dim_soma, axis=1, 
+                                                avg_proj_decrosstalk=self.average_projection_decrosstalk)
     
-        
+            cell_specimen_table['valid_roi'] = ~cell_specimen_table['touching_motion_border'] & \
+                 ~cell_specimen_table['small_roi'] & ~cell_specimen_table['dim_soma']
