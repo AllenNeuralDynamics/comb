@@ -92,6 +92,8 @@ def extract_ophys_fovs(session_json: dict,
     for fov in ophys_fovs:
         index = fov.get('index')
         targeted_structure = fov.get('targeted_structure')
+        if isinstance(targeted_structure, dict):
+            targeted_structure = targeted_structure.get('acronym')
 
         if index is not None and targeted_structure is not None:
             
@@ -235,6 +237,10 @@ def metadata_for_multiplane_session(record: dict, docdb_record: bool = False) ->
     md['session_type'] = record['session'].get('session_type')
     md.update(extract_laser_metadata(record['session']))
     md['ophys_fovs'] = extract_ophys_fovs(record['session'])
+
+    for fov in md['ophys_fovs'].values():
+        if isinstance(fov.get('targeted_structure'), dict):
+            fov['targeted_structure'] = fov['targeted_structure'].get('acronym')
 
     md['session_targeted_structures'] = list(set(
         fov['targeted_structure'] 

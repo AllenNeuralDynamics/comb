@@ -187,7 +187,10 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         split_dict['plane_group_count'] = num_groups_inferred
 
         # Find the plane information from session.json by comparing with opid
-        all_plane_names = np.array([f'{fov["targeted_structure"]}_{fov["index"]}' for fov in data_stream['ophys_fovs']])
+        if isinstance(data_stream['ophys_fovs'][0]['targeted_structure'], dict):
+            all_plane_names = np.array([f'{fov["targeted_structure"]["acronym"]}_{fov["index"]}' for fov in data_stream['ophys_fovs']])
+        else:
+            all_plane_names = np.array([f'{fov["targeted_structure"]}_{fov["index"]}' for fov in data_stream['ophys_fovs']])
         # Find a unique match
         matched_inds = np.where(all_plane_names == self.opid)[0]
         assert len(matched_inds) == 1, "Could not find a unique match for plane in session.json"
