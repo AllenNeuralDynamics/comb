@@ -611,6 +611,15 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return self._dff_traces
     dff_traces = LazyLoadable('_dff_traces', get_dff_traces)
 
+    def get_dff_df(self):
+        dff_traces = self.get_dff_traces()
+        timestamps = self.ophys_timestamps
+        dff_dict = dff_traces['dff'].to_dict()
+        dff_pivoted = pd.DataFrame(dff_dict, index=timestamps)
+        self._dff_df = dff_pivoted
+        return self._dff_df
+    dff_df = LazyLoadable('_dff_df', get_dff_df)
+
     def get_events(self):
 
         f = h5py.File(self.file_paths["events_oasis_h5"], mode='r')
