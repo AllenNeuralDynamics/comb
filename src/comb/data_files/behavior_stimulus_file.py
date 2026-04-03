@@ -27,7 +27,12 @@ class BehaviorStimulusFile(object):
 
     @classmethod
     def from_file(cls, file_path: str) -> "BehaviorStimulusFile":
-        data = pd.read_pickle(file_path)
+        try:
+            data = pd.read_pickle(file_path)
+        except UnicodeDecodeError:
+            import pickle
+            with open(file_path, 'rb') as f:
+                data = pickle.load(f, encoding='latin1')
         # set filepath attribute to class instance
         instance = cls(data)
         instance._filepath = file_path  # DataObject (allenSDK) abstract class has a _filepath attribute, here we set it.
