@@ -6,7 +6,7 @@ from comb.behavior_session_dataset import BehaviorSessionDataset
 from comb.ophys_plane_dataset import OphysPlaneDataset
 from comb.utils.dataframe_utils import df_col_to_array
 
-from aind_ophys_data_access import metadata
+from comb import metadata
 
 from typing import Union, Optional
 from pathlib import Path

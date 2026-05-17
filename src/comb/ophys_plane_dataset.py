@@ -1,12 +1,12 @@
 from comb.ophys_plane_grabber import OphysPlaneGrabber
 from comb.processing.sync.sync_utilities import get_synchronized_frame_times
 
-from aind_ophys_data_access import metadata
+from comb import metadata
 
 from . import file_handling # TODO change to data_access?
-from aind_ophys_data_access import rois
 
 from lamf_analysis import utils as lamf_utils # for motion border
+from lamf_analysis.code_ocean import capsule_data_utils as cdu
 
 from typing import Any, Optional,Union
 import matplotlib.pyplot as plt
@@ -152,7 +152,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         Later versions of the pipeline may not follow this order, will have to adapt the code.
         """
         plane_name = self.plane_folder_path.name
-        assert "721291" in  str(self.plane_folder_path), "ROI matches only for 721291 (11/6/2024)"
+        # assert "721291" in  str(self.plane_folder_path), "ROI matches only for 721291 (11/6/2024)"
         plane_container_map = self._infer_plane_order()
         container_index = plane_container_map[plane_name]
         matching_path = Path(self.file_paths['roi_matching_table']) / str(container_index) / 'ROICaT.tracking.results.csv'
@@ -209,14 +209,14 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         return frame_rate
 
     def _set_metadata(self):
-        metadata = {}
+        metadata_content = {}
         with open(self.file_paths['platform_json']) as json_file:
             platform = json.load(json_file)
 
         split_dict = self._parse_mesoscope_metadata()
-        metadata.update(split_dict)
+        metadata_content.update(split_dict)
 
-        metadata['plane_path'] = self.plane_folder_path
+        metadata_content['plane_path'] = self.plane_folder_path
         
         plane_folder_name = self.plane_folder_path.name
         session_name = self.plane_folder_path.parent.name
@@ -224,17 +224,17 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         date = session_name.split("_")[2]
         
         # for this plane set _inferred_plane_order
-        metadata['plane_session_key'] = f"{subject_id}_{date}_{plane_folder_name}"
+        metadata_content['plane_session_key'] = f"{subject_id}_{date}_{plane_folder_name}"
         
         # TODO: should get all metadata from jsons or docdb.
         # # open session.json
         # with open(self.file_paths['session_json']) as json_file:
         #     session = json.load(json_file)
         
-        return metadata
+        return metadata_content
+
     
     def _set_metadata_from_jsons(self):
-        md = {}
         json_dicts = metadata.load_metadata_json_files(self.raw_folder_path)
         
         index_key_only = True if self.pipeline_version == 'v4-from_lims' else False
@@ -249,6 +249,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         elif self.pipeline_version == 'v6':
             fov_metadata = ophys_fovs_dict[self.plane_folder_path.name]
         self.metadata.update(fov_metadata)
+        
 
     def _set_all_nan_traces_invalid(self):
         ''' Only possible when it has _cell_specimen_table as an attribute.
@@ -357,7 +358,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         else:
             pixel_masks = file_handling.load_sparse_array(self.file_paths['extraction_h5'])
             
-            roi_table = rois.roi_table_from_mask_arrays(pixel_masks)
+            roi_table = cdu.roi_table_from_mask_arrays(pixel_masks)
             roi_table = roi_table.rename(columns={'id': 'cell_roi_id'})
             # cell_specimen_table = self._add_csid_to_table(cell_specimen_table)
             # self._set_all_nan_traces_invalid()
@@ -532,7 +533,11 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         # resample for mesoscope data, planes are interleaved in sync file
         ts_len = len(ophys_timestamps)
         group_count = self.metadata['plane_group_count']
-        plane_group = self.metadata['plane_group_index']                                       
+        plane_group = self.metadata['plane_group_index']
+        # Sometimes, the number of timestamps across planes do not match. Force them by trimming at the end.
+        trailing_frames = ts_len % group_count
+        if trailing_frames != 0:
+            ophys_timestamps = ophys_timestamps[:-trailing_frames]
         self._ophys_timestamps = ophys_timestamps[plane_group::group_count]
         rs_len = len(self._ophys_timestamps)
 
