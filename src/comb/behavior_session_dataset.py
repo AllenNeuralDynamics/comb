@@ -173,7 +173,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         return self._eye_tracking_table
     eye_tracking_table = LazyLoadable('_eye_tracking_table', get_eye_tracking_table)
 
-    def get_stimulus_presentations(self, monitor_delay=0.03613):
+    def get_stimulus_presentations(self, monitor_delay=0.03613, calculate_monitor_delay=False):
         """"TODO"""
         # alternative timestamps, from pkl file. produces 
         # stimulus_timestamps = StimulusTimestamps.from_stimulus_file(self.behavior_stimulus_file, 
@@ -184,8 +184,9 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         # TODO: Add for other session types, and make it generalized (At least within certain scope of stimuli sets)
         # session_type = self.behavior_dataset.behavior_stimulus_file.session_type
         session_type = self.behavior_stimulus_file.session_type
-        # if session_type == 'STAGE_1':
-        #     monitor_delay = self.get_monitor_delay_stage_1()
+        if calculate_monitor_delay:
+            if session_type == 'STAGE_1':
+                monitor_delay = self.get_monitor_delay_stage_1()
 
         stimulus_timestamps = StimulusTimestamps(timestamps=self.stimulus_timestamps, monitor_delay=monitor_delay)
         
@@ -227,7 +228,7 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
                 label = 'sig_' + str(bit)
         
             bit_array = np.bitwise_and(sync_sig, 2 ** bit).astype(bool).astype(np.uint8)
-            bit_changes = np.ediff1d(bit_array, to_begin=0)
+            bit_changes = np.ediff1d(bit_array, to_begin=np.uint8(0))
             falling_edges[label] = time_stamps[np.where(bit_changes == 255)]/sample_freq
             rising_edges[label] = time_stamps[np.where(bit_changes == 1)]/sample_freq
 
