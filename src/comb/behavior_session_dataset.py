@@ -480,7 +480,65 @@ class BehaviorSessionDataset(BehaviorSessionGrabber):
         trials = pd.DataFrame({'change_time': change_times, 'hit': hit, 'miss': miss})
 
         self.trials = trials
-    
+        # Also extract go + CATCH trials from the pickle trial_log (which the is_change-based `trials`
+        # above drops). Catch = sham-change trials; a lick in the response window is a false alarm,
+        # otherwise a correct reject. Validated to match `change_time` above to machine precision.
+        try:
+            self._add_catch_trials(response_window)
+        except Exception:
+            self.trials_all = None
+            self.catch_trials = None
+
+    def _add_catch_trials(self, response_window=(0.15, 0.75)):
+        """Extract go + CATCH trials from the pickle ``trial_log``.
+
+        Adds:
+          self.trials_all  -- go + catch trials with columns: trial_type, is_catch, change_time,
+                              outcome, response, abort_time, hit, miss, false_alarm, correct_reject.
+          self.catch_trials -- the catch subset of the above.
+
+        change_time is the (sham-)change frame mapped through the monitor-delay-corrected stimulus
+        timestamps (same clock as stimulus_presentations.start_time / self.trials.change_time).
+        """
+        data = self.behavior_stimulus_file.data
+        bkey = 'behavior' if 'behavior' in data['items'] else 'foraging'
+        trial_log = data['items'][bkey]['trial_log']
+        st = np.asarray(self.stimulus_timestamps)
+        sp = self.stimulus_presentations
+        good = sp.dropna(subset=['start_frame'])
+        # monitor delay actually applied to start_time (0.03613 s by default), derived robustly
+        delay = float(np.median(good['start_time'].values
+                                - st[good['start_frame'].astype(int).values]))
+
+        def frame_of(trial, name):
+            for e in trial['events']:
+                if e[0] == name:
+                    return int(e[3])
+            return None
+
+        rows = []
+        for t in trial_log:
+            is_catch = bool(t.get('trial_params', {}).get('catch', False))
+            change_frame = frame_of(t, 'sham_change' if is_catch else 'stimulus_changed')
+            if change_frame is None:                       # aborted before a (sham-)change was shown
+                abort_frame = frame_of(t, 'abort')
+                rows.append(dict(trial_type='catch' if is_catch else 'go', is_catch=is_catch,
+                                 change_time=np.nan, outcome='aborted', response=np.nan,
+                                 abort_time=(st[abort_frame] + delay if abort_frame is not None else np.nan)))
+                continue
+            outcome = next((e[0] for e in t['events']
+                            if e[0] in ('hit', 'miss', 'false_alarm', 'rejection')), None)
+            rows.append(dict(trial_type='catch' if is_catch else 'go', is_catch=is_catch,
+                             change_time=st[change_frame] + delay, outcome=outcome,
+                             response=outcome in ('hit', 'false_alarm'), abort_time=np.nan))
+        tr = pd.DataFrame(rows)
+        tr['hit'] = (~tr.is_catch) & (tr.outcome == 'hit')
+        tr['miss'] = (~tr.is_catch) & (tr.outcome == 'miss')
+        tr['false_alarm'] = tr.is_catch & (tr.outcome == 'false_alarm')
+        tr['correct_reject'] = tr.is_catch & (tr.outcome == 'rejection')
+        self.trials_all = tr
+        self.catch_trials = tr[tr.is_catch].reset_index(drop=True)
+
 
     def _filter_pupil_data(self,
                             aspect_ratio_threshold: float = 0.6,
