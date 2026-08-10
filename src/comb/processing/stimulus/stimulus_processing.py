@@ -599,7 +599,12 @@ def get_visual_stimuli_df(
             movie_name = os.path.split(stim_path)[1].replace('.npy','')
 
             display_sequence = np.array(stimulus['display_sequence'])[0]
-            sweep_order = stimulus['sweep_order'][:int(np.diff(display_sequence * 30))]
+            # NumPy >=2.0 removed int() on size-1 1-D arrays (deprecated in 1.25; only
+            # 0-d arrays convert), so the previous `int(np.diff(...))` raised
+            # TypeError: only 0-dimensional arrays can be converted to Python scalars.
+            # `.item()` is the intended semantics and is valid on NumPy 1.x and 2.x.
+            n_movie_frames = int(np.diff(display_sequence * 30).item())
+            sweep_order = stimulus['sweep_order'][:n_movie_frames]
             Starts = (np.argwhere(np.array(sweep_order)==0) / 30).astype(int)[:, 0]
             Ends = Starts.copy()
             Ends[:-1] = Starts[1:]
