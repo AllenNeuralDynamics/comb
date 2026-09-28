@@ -158,7 +158,7 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         """
         plane_name = self.plane_folder_path.name
         # assert "721291" in  str(self.plane_folder_path), "ROI matches only for 721291 (11/6/2024)"
-        plane_container_map = self._infer_plane_order()
+        plane_container_map = self._infer_plane_sort_index()
         container_index = plane_container_map[plane_name]
         matching_path = Path(self.file_paths['roi_matching_table']) / str(container_index) / 'ROICaT.tracking.results.csv'
         
