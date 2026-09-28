@@ -62,7 +62,7 @@ def extract_ophys_stream(session_json: dict):
         ophys_stream = next((stream for stream in session_json['data_streams'] 
                             if any(modality.get('name') == 'Planar optical physiology' 
                                     for modality in stream.get('stream_modalities', []))), 
-                            None)
+                            {})
     except KeyError:
         ophys_stream = {}
         warnings.warn("No ophys stream found in the metadata", UserWarning)
