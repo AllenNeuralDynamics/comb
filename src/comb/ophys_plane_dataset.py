@@ -701,7 +701,8 @@ class OphysPlaneDataset(OphysPlaneGrabber):
         obj.get_average_projection_png()
         obj.get_motion_transform_csv()
         obj.get_decrosstalk_average_projection_png()
-        obj.get_decrosstalk_max_projection_png()
+        if obj.file_paths['decrosstalk_max_png'] is not None:
+            obj.get_decrosstalk_max_projection_png()
 
         # obj.get_metadata()
         # obj.get_timestamps()
