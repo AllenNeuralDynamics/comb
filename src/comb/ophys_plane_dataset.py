@@ -665,6 +665,8 @@ class OphysPlaneDataset(OphysPlaneGrabber):
     # These data products should be available in processed data assets
     average_projection_raw = LazyLoadable('_average_projection_raw', get_average_projection_png)
     max_projection_raw = LazyLoadable('_max_projection_raw', get_max_projection_png)
+    average_projection = average_projection_raw
+    max_projection = max_projection_raw
     motion_transform = LazyLoadable('_motion_transform', get_motion_transform_csv)
     average_projection_decrosstalk = LazyLoadable('_average_projection_decrosstalk', get_decrosstalk_average_projection_png)
     max_projection_decrosstalk = LazyLoadable('_max_projection_decrosstalk', get_decrosstalk_max_projection_png)
