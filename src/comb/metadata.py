@@ -227,7 +227,7 @@ def metadata_for_multiplane_session(record: dict, docdb_record: bool = False) ->
     for key in json_keys:
         if record[key] is None:
             record[key] = {}
-            logger.warning(f"{key} not found for {md['asset_name']}")
+            logger.warning(f"{key} not found for {md.get('asset_name', '<unknown>')}")
 
     ### SESSION METADATA ###
     # 2024-05-17T08:35:11.779675-07:00
